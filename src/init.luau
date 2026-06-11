@@ -1,10 +1,11 @@
 --[[
 	Created by: Mystifine#4924
-	Last Updated: 2025-12-06
+	Last Updated: 2026-06-10
 	
 	Lightweight module used to handle PlayerData
 	
 	Features:
+	Unable to save single values
 	Session Locking
 	Automatic Data Saving
 ]]
@@ -37,24 +38,35 @@ local SOUL_STORE_SETTINGS = {
 	SESSION_LOCK_AUTO_RELEASE = 60 * 5; -- 5 minutes.
 }
 
+export type SoulMetaData = {
+	Locked : boolean,
+	SaveId : number,
+	LastUpdate : number,
+	SessionId : string,
+}
+
 export type Soul = {
 	DatastoreId : string,
 	Player : Player,
 	
-	Data : any?,
+	Data : {MetaData : SoulMetaData},
 	LastAutoSave : number,
-	_listeners : {},
+	_Listeners : {},
+	_onSave : (dataToBeSaved : {}) -> any?,
+	_onLoad : (dataToBeLoaded : {}) -> any?,
 	
 	LoadState : string,
 	SaveState : string,
 	SessionEndBindableEvent : BindableEvent,
 	
-	OnDataChanged : (self : Soul, path : {any}?, callback : (oldData : any?, newData : any?) -> nil) -> {Disconnect : () -> nil},
-	SetData : (self : Soul, path : {any}?,value : any) -> nil,
+	OnDataChanged : (self : Soul, path : {any}, callback : (oldData : any?, newData : any?) -> nil) -> {Disconnect : () -> nil},
+	SetData : (self : Soul, path : {any}, value : any) -> nil,
 	GetData : (self : Soul, path : {any}?) -> nil,
 	Reconcile : (self : Soul, data : {}?) -> nil,
 	SaveData : (self : Soul, sessionEndSaving : boolean?) -> nil,
 	LoadData : (self : Soul) -> nil,
+	SetOnSave : (self : Soul, callback : (dataToBeSaved : {}) -> nil) -> nil,
+	SetOnLoad : (self : Soul, callback : (dataToBeLoaded : {}) -> nil) -> nil,
 }
 
 export type SoulStore = {
@@ -62,12 +74,7 @@ export type SoulStore = {
 	
 	resetData : (datastoreId : string, datastoreKey : string) -> nil,
 	resetAllData : (datastoreId : string) -> nil,
-	getMetaData : () -> {
-		Locked : boolean,
-		SaveId : number,
-		LastUpdate : number,
-		SessionId : string,
-	},
+	getMetaData : () -> SoulMetaData,
 	deepCopy : (data : any?) -> any,
 	output : (outputFunction : (any) -> any) -> nil,
 	playerExists : (Player) -> boolean?,
@@ -104,9 +111,9 @@ function SoulStore:OnDataChanged(path : {[number] : string | number}, callback :
 	local soul : Soul = self;
 	
 	local key = table.concat(path, ".");
-	soul._listeners[key] = soul._listeners[key] or {};
+	soul._Listeners[key] = soul._Listeners[key] or {};
 	
-	local listeners = soul._listeners[key];
+	local listeners = soul._Listeners[key];
 	table.insert(listeners, callback);
 	
 	local disconnected = false;
@@ -197,8 +204,10 @@ function SoulStore:LoadData()
 	
 	-- Souls are cached after they are loaded
 	if not loadSuccess or sessionLocked then
+		-- If data has not loaded successfully that means they left early
 		-- If the player leaves the game, we don't want to keep the soul object in memory
 		soul.LoadState = LOAD_STATES.Idle; 
+		soul.SessionEndBindableEvent:Destroy();
 		return;		
 	end
 	
@@ -206,14 +215,26 @@ function SoulStore:LoadData()
 	if not loadedSouls[soul.DatastoreId] then
 		loadedSouls[soul.DatastoreId] = {};
 	end
-	-- Cache the soul
-	loadedSouls[soul.DatastoreId][datastoreKey] = soul;
-	
-	-- If we get to this point the soul has been loaded
+
 	soul.Data = loadResult;
+
+	-- If we get to this point the soul has been loaded
+	-- Call onLoad callback if it exists
+	if soul._onLoad then
+    local ok, err = pcall(soul._onLoad, soul.Data)
+    if not ok then
+			SoulStore.output(warn, string.format(
+				"SoulStore:LoadData => OnLoad callback failed for '%s'. Error: %s",
+				playerName, tostring(err)
+			))
+    end
+	end
+
 	soul.LoadState = LOAD_STATES.Loaded;
 	SoulStore.output(print, string.format("SoulStore:LoadData => Data for '%s' (%d) has been loaded successfully! (SaveId: %d)", playerName, datastoreKey, soul.Data.MetaData.SaveId));
-
+	
+	-- Cache the soul
+	loadedSouls[soul.DatastoreId][datastoreKey] = soul;
 end
 
 --[[
@@ -245,6 +266,20 @@ function SoulStore:SaveData(sessionEnding : boolean)
 	local currentSaveState = soul.SaveState; -- Used to check incase we :Save() and then session end save immediately
 	local saveSuccess, saveResult;
 	while not saveSuccess and currentSaveState == soul.SaveState do
+		-- Avoids mutating the data directly. Retries would increment the saveId continously otherwise
+		local dataSnapShot = SoulStore.deepCopy(soul.Data);
+
+		-- Call attached onSave callback before saving the data
+		if soul._onSave then
+			local ok, err = pcall(soul._onSave, dataSnapShot)
+			if not ok then
+				SoulStore.output(warn, string.format(
+					"SoulStore:SaveData => OnSave callback failed for '%s'. Error: %s",
+					playerName, tostring(err)
+        ))			
+			end
+		end
+
 		saveSuccess, saveResult = pcall(function()
 			return datastore:UpdateAsync(datastoreKey, function(oldData)				
 				-- If the data exists but is NOT owned by us, we cannot modify it anymore
@@ -252,19 +287,18 @@ function SoulStore:SaveData(sessionEnding : boolean)
 					return oldData -- Return existing data unmodified
 				end
 
-				local dataToSave = soul.Data;
-				dataToSave.MetaData.SaveId += 1;
-				dataToSave.MetaData.LastUpdate = os.time();
+				dataSnapShot.MetaData.SaveId += 1;
+				dataSnapShot.MetaData.LastUpdate = os.time();
 
 				if sessionEnding then
-					dataToSave.MetaData.Locked = false;
-					dataToSave.MetaData.SessionId = "";
+					dataSnapShot.MetaData.Locked = false;
+					dataSnapShot.MetaData.SessionId = "";
 				else
-					dataToSave.MetaData.Locked = true;
-					dataToSave.MetaData.SessionId = game.JobId;
+					dataSnapShot.MetaData.Locked = true;
+					dataSnapShot.MetaData.SessionId = game.JobId;
 				end
 				
-				return dataToSave;
+				return dataSnapShot;
 			end)	
 		end)
 		
@@ -299,6 +333,9 @@ function SoulStore:SaveData(sessionEnding : boolean)
 		else
 			soul.SaveState = SAVE_STATES.Idle; -- Allow saving again
 			SoulStore.output(print, string.format("SoulStore:SaveData => Data for '%s' (%d) has been saved successfully! (SaveId: %d)", playerName, datastoreKey, saveResult.MetaData.SaveId));
+			
+			-- Update to match the results
+			soul.Data.MetaData = saveResult.MetaData;
 		end
 	end
 end
@@ -409,7 +446,7 @@ function SoulStore:SetData(path : {any}, value : any) : any?
 
 			for k = 1, #path do
 				fullPath = (k == 1) and tostring(path[k]) or (fullPath .. "." .. tostring(path[k]))
-				local listeners = soul._listeners[fullPath]
+				local listeners = soul._Listeners[fullPath]
 				if listeners then
 					for _, fn in ipairs(listeners) do
 						task.spawn(fn, oldData, value)
@@ -430,6 +467,26 @@ function SoulStore:SetData(path : {any}, value : any) : any?
 		end
 	end
 	return nil;
+end
+
+--[[
+	Attaches a onLoad function that is called internally before the soul is returned when the soul is loaded for the first time.
+	
+	@param onLoadCallback: The callback function that you want called before the soul is returned
+	@return nil
+]]
+function SoulStore:SetOnLoad(onLoadCallback : (dataToBeLoaded : {}) -> nil)
+	self._onLoad = onLoadCallback;
+end
+
+--[[
+	Attached a onSave function that is called internally before the data is saved
+
+	@param onSaveCallback: The callback function that ou want called before the data is saved
+	@return nil
+]]
+function SoulStore:SetOnSave(onSaveCallback : (dataToBeSaved : {}) -> nil)
+	self._onSave = onSaveCallback;
 end
 
 --[[
@@ -546,9 +603,12 @@ function SoulStore.new(datastoreId : string, player : Player, defaultData : {})
 	local soul = setmetatable({}, SoulStore);
 	soul.DatastoreId = datastoreId;
 	soul.Player = player;
-	soul.Data = SoulStore.deepCopy(defaultData);
+	soul.Data = SoulStore.deepCopy(defaultData) or {};
 	soul.LastAutoSave = os.time();
-	soul._listeners = {};
+	soul._Listeners = {};
+
+	soul._onSave = nil;
+	soul._onLoad = nil;
 	
 	soul.LoadState = LOAD_STATES.Idle;
 	soul.SaveState = SAVE_STATES.Idle;
@@ -715,6 +775,7 @@ task.spawn(function()
 		for _, cachedSouls : {[number] : Soul} in pairs(loadedSouls) do
 			for _, soul : Soul in pairs(cachedSouls) do
 				if os.time() - soul.LastAutoSave < SOUL_STORE_SETTINGS.AUTO_SAVE_INTERVAL then continue end;
+				if soul.SaveState ~= SAVE_STATES.Idle then continue end; -- We only want to apply auto saves when the soul is idle
 				soul.LastAutoSave = os.time();
 
 				-- It will create new threads

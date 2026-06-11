@@ -1,5 +1,5 @@
 [package]
 name = "mystifine/soulstore"
-version = "1.0.2"
+version = "1.0.3"
 registry = "https://github.com/UpliftGames/wally-index"
 realm = "shared"

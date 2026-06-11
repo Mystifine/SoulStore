@@ -1,152 +1,267 @@
+# SoulStore
 
-# SoulStore 💾
-
-[![Lua](https://img.shields.io/badge/language-Lua-2C2C2C)](https://www.lua.org/)  
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)  
-
-A **lightweight Roblox data management module** for handling player data efficiently. `SoulStore` provides session locking, automatic saving, data reconciliation, and robust error handling to keep player data safe and consistent.  
+A lightweight, production-ready Roblox player data module with session locking, automatic saving, and change listeners.
 
 ---
 
 ## Features
 
-- **Session Locking** – Prevents concurrent access to player data to avoid conflicts.  
-- **Automatic Data Saving** – Configurable auto-save intervals keep data safe during gameplay.  
-- **Manual Save & Load** – Explicitly load or save player data when needed.  
-- **Data Reconciliation** – Merge external updates into existing player data.  
-- **Nested Data Access** – Get or set nested properties safely with path arrays.  
-- **Reset Data** – Reset individual or all datastore entries.  
-- **Debug & Traceback Support** – Optional verbose logging for development.  
+- **Session locking** — prevents cross-server data collisions with time-based auto-release
+- **Automatic saving** — configurable interval-based auto-save with state-aware scheduling
+- **Change listeners** — subscribe to nested data changes via path-based callbacks
+- **Load/save hooks** — attach `OnLoad` and `OnSave` callbacks for data transformations
+- **Reconciliation** — safely merge default data into existing player data without overwriting
+- **Safe shutdown** — `BindToClose` handler ensures all souls are saved before the server closes
 
 ---
 
 ## Installation
 
-Place `SoulStore.lua` in your Roblox project and require it where needed:
+Drop `SoulStore.lua` into `ServerScriptService` or any server-accessible `ModuleScript` location, then require it from your server scripts.
 
 ```lua
-local SoulStore = require(game.ReplicatedStorage.Services.SoulStore)
-````
+local SoulStore = require(game.ServerScriptService.SoulStore)
+```
 
 ---
 
-## Usage Example
-
-### Create a new player profile
+## Quick Start
 
 ```lua
-local defaultData = {
+local SoulStore = require(game.ServerScriptService.SoulStore)
+
+local DEFAULT_DATA = {
     Coins = 0,
     Level = 1,
-    Inventory = {}
+    Inventory = {},
 }
 
-local soul = SoulStore.new("PlayerDataStore", player, defaultData)
-soul:LoadData()
-```
+game.Players.PlayerAdded:Connect(function(player)
+    local soul = SoulStore.new("PlayerData", player, DEFAULT_DATA)
 
-### Access and modify data
+    soul:SetOnLoad(function(data)
+        -- Runs after data is loaded, before the soul is marked ready.
+        -- Use this to migrate or transform data on load.
+        if not data.Settings then
+            data.Settings = { MusicEnabled = true }
+        end
+    end)
 
-```lua
--- Get a value
-local coins = soul:GetData({"Coins"})
+    soul:LoadData()
 
--- Set a value
-soul:SetData({"Coins"}, coins + 10)
+    -- Wait for load before doing anything with the data
+    -- (LoadData is synchronous — it blocks until loaded or the player leaves)
 
--- Listen for changes
-local listener = soul:OnDataChanged({"Coins"}, function(oldValue, newValue)
-    print("Coins changed:", oldValue, "->", newValue)
+    soul:SetData({"Coins"}, 100)
+    print(soul:GetData({"Coins"})) -- 100
 end)
 ```
-
-### Save data manually
-
-```lua
-soul:SaveData(false) -- Normal save
-soul:SaveData(true)  -- Session-ending save
-```
-
-### Reset all or specific data
-
-```lua
--- Reset a single player
-SoulStore.resetData("PlayerDataStore", tostring(player.UserId))
-
--- Reset entire datastore (use with caution)
-SoulStore.resetAllData("PlayerDataStore")
-```
-
----
-
-## Configuration
-
-Located at the top of the module:
-
-```lua
-SOUL_STORE_SETTINGS = {
-    DEBUG_MODE = true,                -- Enable debug messages
-    TRACE_BACK_MESSAGE = false,       -- Append stack trace to messages
-    MINIMUM_SAVE_INTERVAL = 6,        -- Wait time between retries
-    MINIMUM_LOAD_INTERVAL = 6,        -- Wait time between retries
-    AUTO_SAVE_INTERVAL = 30,          -- Time between automatic saves
-    SESSION_LOCK_AUTO_RELEASE = 60*5  -- Time before a lock auto-releases
-}
-```
-
-Adjust `AUTO_SAVE_INTERVAL` and `SESSION_LOCK_AUTO_RELEASE` depending on gameplay priorities and data safety requirements.
 
 ---
 
 ## API
 
-### `SoulStore.new(datastoreId: string, player: Player, defaultData: table) -> Soul`
+### `SoulStore.new(datastoreId, player, defaultData) → Soul`
 
-Creates a new player soul object.
+Creates a new Soul object. If a soul already exists in cache for this player and datastore, the cached instance is returned instead.
 
-### `Soul:LoadData()`
-
-Loads player data from the datastore.
-
-### `Soul:SaveData(sessionEnding: boolean)`
-
-Saves player data to the datastore. Set `sessionEnding` to `true` when the player leaves.
-
-### `Soul:GetData(path: table) -> any`
-
-Retrieve nested data from the soul.
-
-### `Soul:SetData(path: table, value: any)`
-
-Set nested data and notify listeners.
-
-### `Soul:OnDataChanged(path: table, callback: function) -> {Disconnect: function}`
-
-Listen for changes to specific data paths.
-
-### `Soul:Reconcile(data: table)`
-
-Merge external data into the soul’s data safely.
-
-### `SoulStore.resetData(datastoreId: string, datastoreKey: string)`
-
-Delete a single player profile from a datastore.
-
-### `SoulStore.resetAllData(datastoreId: string)`
-
-Delete all entries in a datastore. **Use with caution.**
+| Parameter | Type | Description |
+|---|---|---|
+| `datastoreId` | `string` | The DataStore name to use |
+| `player` | `Player` | The player this soul belongs to |
+| `defaultData` | `{}` | Default data table (must be a dictionary) |
 
 ---
 
-## Auto Save & Server Handling
+### `soul:LoadData()`
 
-* Automatically saves all loaded souls every `AUTO_SAVE_INTERVAL` seconds.
-* Saves player data when they leave the game.
-* Saves all active data before the server shuts down.
+Loads the player's data from the DataStore. Handles session lock detection, retrying until the lock expires or the player leaves. Blocks the calling thread until resolved.
+
+- If the player leaves mid-load, the soul is cleaned up automatically.
+- The `OnLoad` callback fires after data is assigned but before `LoadState` becomes `Loaded`.
 
 ---
 
-## License
+### `soul:SaveData(sessionEnding: boolean?)`
 
-MIT License. See [LICENSE](LICENSE) for details.
+Saves the player's data to the DataStore.
 
+- Pass `true` for `sessionEnding` when the player is leaving — this unlocks the session and clears the soul from cache on success.
+- Auto-saves and manual saves pass `false` (or omit the argument).
+- The `OnSave` callback fires on each attempt, receiving a snapshot of the data.
+
+---
+
+### `soul:GetData(path: {any}?) → any?`
+
+Retrieves a value from the soul's data by path.
+
+```lua
+-- Get the entire data table
+local data = soul:GetData()
+
+-- Get a nested value
+local coins = soul:GetData({"Coins"})
+local musicSetting = soul:GetData({"Settings", "MusicEnabled"})
+```
+
+Returns `nil` and warns if a key in the path doesn't exist.
+
+---
+
+### `soul:SetData(path: {any}, value: any) → any?`
+
+Sets a value in the soul's data by path. Fires any registered `OnDataChanged` listeners for the affected path and its ancestors.
+
+```lua
+soul:SetData({"Coins"}, 500)
+soul:SetData({"Settings", "MusicEnabled"}, false)
+```
+
+---
+
+### `soul:OnDataChanged(path, callback) → { Disconnect: () -> nil }`
+
+Listens for changes at the given path. The callback receives `(oldValue, newValue)`.
+
+```lua
+local connection = soul:OnDataChanged({"Coins"}, function(old, new)
+    print(string.format("Coins changed: %d -> %d", old, new))
+end)
+
+-- Later, when you no longer need it:
+connection:Disconnect()
+```
+
+Listeners fire for changes at the exact path and any descendant path. For example, a listener on `{"Settings"}` fires when `{"Settings", "MusicEnabled"}` changes.
+
+---
+
+### `soul:Reconcile(data: {})`
+
+Merges `data` into the soul's existing data. Only fills in keys that are `nil` — existing values are never overwritten. Useful for adding new fields to returning players.
+
+```lua
+soul:Reconcile({
+    NewFeatureFlag = false,  -- only added if not already present
+    Coins = 999,             -- ignored, Coins already exists
+})
+```
+
+---
+
+### `soul:SetOnLoad(callback: (data: {}) -> nil)`
+
+Attaches a callback that fires once after data is loaded from the DataStore. Receives the raw loaded data table directly — use this for migrations or one-time transforms.
+
+```lua
+soul:SetOnLoad(function(data)
+    -- Rename an old key
+    if data.Gold then
+        data.Coins = data.Gold
+        data.Gold = nil
+    end
+end)
+```
+
+The callback is wrapped in a `pcall` — errors are logged but do not interrupt loading.
+
+---
+
+### `soul:SetOnSave(callback: (data: {}) -> nil)`
+
+Attaches a callback that fires before each save attempt. Receives a **snapshot** of the data (not the live table) — mutations here affect what gets saved, not `soul.Data` itself.
+
+```lua
+soul:SetOnSave(function(data)
+    -- Strip a temporary runtime field before saving
+    data.SessionStartTime = nil
+end)
+```
+
+The callback is wrapped in a `pcall`. Because it runs inside the retry loop, it fires on every save attempt including retries.
+
+---
+
+### `SoulStore.getSoul(datastoreId, player) → Soul?`
+
+Returns the cached soul for a player if one exists. Returns `nil` otherwise.
+
+---
+
+### `SoulStore.resetData(datastoreId, datastoreKey)`
+
+Removes a single key from a DataStore. Intended for development and admin tooling only.
+
+---
+
+### `SoulStore.resetAllData(datastoreId)`
+
+Removes **all keys** from a DataStore. Includes a 10-second warning delay. Use with extreme caution — this is irreversible.
+
+---
+
+## Configuration
+
+Settings are defined at the top of the module in `SOUL_STORE_SETTINGS`:
+
+| Setting | Default | Description |
+|---|---|---|
+| `DEBUG_MODE` | `true` | Enables console output for load/save events and errors |
+| `TRACE_BACK_MESSAGE` | `false` | Appends a stack trace to all debug output |
+| `AUTO_SAVE_INTERVAL` | `30` | Seconds between automatic saves (minimum 6, recommended 30+) |
+| `MINIMUM_SAVE_INTERVAL` | `6` | Minimum seconds between save retry attempts |
+| `MINIMUM_LOAD_INTERVAL` | `6` | Minimum seconds between load retry attempts |
+| `SESSION_LOCK_AUTO_RELEASE` | `300` | Seconds before a session lock is considered stale and released |
+
+---
+
+## Session Locking
+
+SoulStore attaches metadata to each player's DataStore entry to prevent two servers from writing the same player's data simultaneously.
+
+When a player joins:
+1. `LoadData` reads the DataStore and checks for a lock.
+2. If unlocked (or the lock has expired), it claims ownership by writing `Locked = true` and the current `JobId`.
+3. If locked by another server, it waits `MINIMUM_LOAD_INTERVAL` seconds and retries.
+
+When a player leaves:
+1. `SaveData(true)` writes the final data with `Locked = false`, releasing the lock.
+2. Any other server can now load this player's data cleanly.
+
+`SESSION_LOCK_AUTO_RELEASE` is the safety net for cases where a server crashes before releasing its lock. Set it higher than `AUTO_SAVE_INTERVAL` to ensure saves always happen within the lock window.
+
+---
+
+## Types
+
+```lua
+export type SoulMetaData = {
+    Locked: boolean,
+    SaveId: number,
+    LastUpdate: number,
+    SessionId: string,
+}
+
+export type Soul = {
+    DatastoreId: string,
+    Player: Player,
+    Data: { MetaData: SoulMetaData },
+    LoadState: string,
+    SaveState: string,
+    -- methods...
+}
+```
+
+---
+
+## Notes
+
+- `LoadData` is **synchronous** — it yields the calling thread until data is loaded or the player leaves. Call it inside a `task.spawn` or a `PlayerAdded` connection to avoid blocking other code.
+- `soul.Data` should not be mutated directly for tracked fields. Use `SetData` to ensure change listeners fire correctly.
+- `MetaData` is a reserved key inside the data table. Do not use it in your `defaultData`.
+- `resetData` and `resetAllData` are available on the live module. Consider guarding them with `RunService:IsStudio()` in your own code if you expose admin tooling.
+
+---
+
+*Created by Mystifine*
