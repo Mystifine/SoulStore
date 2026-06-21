@@ -12,7 +12,7 @@ You may install SoulStore in one of two ways:
 1. Edit your `wally.toml` file to include the following:
 ```toml
 [dependencies]
-SoulStore = "mystifine/soulstore@1.0.3"
+soulstore = "mystifine/soulstore@1.0.3"
 ```
 2. Run `wally install`
 
