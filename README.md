@@ -39,13 +39,7 @@ end)
 
 ## Documentation
 
-Full documentation is available at [SoulStore Docs](https://docs.example.com) or in the `/docs` folder.
-
-- [Getting Started](docs/getting-started.md) — Installation and basic usage
-- [API Reference](docs/api.md) — Complete API documentation
-- [Configuration](docs/configuration.md) — Settings and tuning
-- [Examples](docs/examples.md) — Real-world usage patterns
-- [Session Locking](docs/session-locking.md) — How session locks work
+Full documentation is available at [SoulStore Docs](https://mystifine.github.io/SoulStore/) or in the `/docs` folder.
 
 ## License
 
