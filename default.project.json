@@ -1,6 +1,12 @@
 {
   "name": "SoulStore",
   "tree": {
-    "$path": "src"
+    "$className": "DataModel",
+    
+    "ServerScriptService": {
+      "SoulStore": {
+        "$path": "src"
+      }
+    }
   }
 }
