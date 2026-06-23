@@ -5,7 +5,7 @@ You may install SoulStore in one of two ways:
 
 ### Rojo
 1. Git clone or download the repository onto your computer
-2. Run `rojo build --o SoulStore.rbxlx`
+2. Run `rojo build -o SoulStore.rbxlx`
 3. Copy 'SoulStore' in ServerScriptService into your desired location
 
 ### Wally
