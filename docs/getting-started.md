@@ -98,6 +98,11 @@ function PlayerDataService._onPlayerRemoving(player : Player)
 	playerSouls[player] = nil;
 end
 
+function PlayerDataService.waitForDataLoaded(player : Player)
+	local dataLoaded = player:WaitForChild("dataLoaded");
+	return dataLoaded;
+end
+
 function PlayerDataService.getSoul(player : Player)
 	local dataLoaded = PlayerDataService.waitForDataLoaded(player);
 	return playerSouls[player];
