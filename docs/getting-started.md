@@ -245,6 +245,7 @@ end
 return ClientPlayerDataService
 
 ```
+Make sure you call `ClientPlayerDataService.main()` and `PlayerDataService.main()`!
 
 ## Configuration
 
