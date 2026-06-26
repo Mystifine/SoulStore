@@ -42,7 +42,7 @@ return PlayerDataSchema
 ```
 
 ### Creating a PlayerDataService
-Create a service that handles player data. This service will be responsible for creating and managing souls.
+Create a service that handles player data. This service will be responsible for creating, replicating and managing souls.
 ```lua
 local ServerScriptService = game.ServerScriptService;
 local Players = game.Players;
@@ -54,6 +54,9 @@ local PlayerDataSchema = require(ServerScriptService.Constants.PlayerDataSchema)
 
 local playerSouls : {[Player] : SoulStore.Soul} = {};
 local PlayerDataService = {}
+
+local dataChangedEvent = path.to.dataChangedEvent; -- This should be a remote event
+local getPlayerDataFunction = path.to.getPlayerDataFunction;  -- This should be a remote function
 
 function PlayerDataService._initPlayerData(player : Player)
 	local newSoul = SoulStore.new("PlayerData", player, PlayerDataSchema);
@@ -108,6 +111,23 @@ function PlayerDataService.getSoul(player : Player)
 	return playerSouls[player];
 end
 
+function PlayerDataService.setData(player : Player, path : {[number] : string | number}, value : any)
+	local soul = PlayerDataService.getSoul(player);
+	if soul then
+		soul:SetData(path, value);
+
+		-- Replicate the change to the client
+		dataChangedEvent:FireClient(player, path, value);
+	end
+end
+
+function PlayerDataService.getData(player : Player, path : {[number]: string | number})
+	local soul = PlayerDataService.getSoul(player);
+	if soul then
+		return soul:GetData(path);
+	end
+end
+
 function PlayerDataService.main()
 	Players.PlayerAdded:Connect(PlayerDataService._initPlayerData);
 	local players = Players:GetPlayers();
@@ -116,9 +136,113 @@ function PlayerDataService.main()
 	end
 	
 	Players.PlayerRemoving:Connect(PlayerDataService._onPlayerRemoving);
+	getPlayerDataFunction.OnServerInvoke = PlayerDataService.getData;
 end
 
 return PlayerDataService
+
+```
+
+Now you want to setup the client side to handle data replication and data management.
+```lua
+-- Client
+local getPlayerDataFunction = path.to.getPlayerDataFunction
+local dataChangedEvent = path.to.dataChangedEvent
+
+local ClientPlayerDataService = {}
+
+-- State
+local playerData = nil;
+local eventSignals = {};
+local queuedChanges = {};
+
+-- Helpers
+local function pathToKey(path: {[number]: string | number}): string
+	return table.concat(path, ".")
+end
+
+-- Traverses playerData down to a given depth
+local function traversePath(path: {[number]: string | number}, depth: number): any?
+	local data = playerData
+	for i = 1, depth do
+		if type(data) ~= "table" then
+			warn("ClientPlayerDataService: Invalid path at index " .. i .. " ('" .. pathToKey(path) .. "')")
+			return nil
+		end
+		data = data[path[i]]
+	end
+	return data
+end
+
+-- Private
+
+function ClientPlayerDataService._onDataChanged(path: {[number]: string | number}, value: any)
+	if playerData == nil then
+		table.insert(queuedChanges, {path, value})
+		return;
+	end
+
+	local parent = traversePath(path, #path - 1)
+	if parent == nil then return end
+
+	local lastIndex = path[#path]
+	local oldData = parent[lastIndex]
+	parent[lastIndex] = value
+
+	local pathKey = pathToKey(path)
+	local callbacks = eventSignals[pathKey]
+	if not callbacks then return end
+
+	for i = 1, #callbacks do
+		task.spawn(callbacks[i], oldData, value)
+	end
+end
+
+function ClientPlayerDataService.getData(path: {[number]: string | number}): any?
+	return traversePath(path, #path)
+end
+
+function ClientPlayerDataService.onDataChanged(
+	path: {[number]: string | number},
+	callback: (oldData: any?, newData: any?) -> ()
+)
+	local pathKey = pathToKey(path)
+
+	if not eventSignals[pathKey] then
+		eventSignals[pathKey] = {}
+	end
+	table.insert(eventSignals[pathKey], callback)
+
+	return {
+		Disconnect = function()
+			local callbacks = eventSignals[pathKey]
+			if not callbacks then return end
+
+			for i = 1, #callbacks do
+				if callbacks[i] == callback then
+					table.remove(callbacks, i)
+					break
+				end
+			end
+
+			if #eventSignals[pathKey] == 0 then
+				eventSignals[pathKey] = nil
+			end
+		end
+	}
+end
+
+function ClientPlayerDataService.main()
+	dataChangedEvent.OnClientEvent:Connect(ClientPlayerDataService._onDataChanged);
+
+	playerData = getPlayerDataFunction:InvokeServer({});
+	for i = 1, #queuedChanges do
+		task.spawn(ClientPlayerDataService._onDataChanged, queuedChanges[i][1], queuedChanges[i][2]);
+	end
+	table.clear(queuedChanges);
+end
+
+return ClientPlayerDataService
 
 ```
 
