@@ -48,95 +48,75 @@ local ServerScriptService = game.ServerScriptService;
 local Players = game.Players;
 local ReplicatedStorage = game.ReplicatedStorage;
 
-local SoulStore = require(ServerScriptService.Dependencies.SoulStore);
+local SoulStore = require(ServerScriptService.ServerPackages.soulstore);
 
 local PlayerDataSchema = require(ServerScriptService.Constants.PlayerDataSchema); -- A table of default data
+local Remotes = require(ReplicatedStorage.Constants.Remotes);
 
-local playerSouls : {[Player] : SoulStore.Soul} = {};
+local playerSouls : {[Player] : any} = {};
 local PlayerDataService = {}
 
-local dataChangedEvent = path.to.dataChangedEvent; -- This should be a remote event
-local getPlayerDataFunction = path.to.getPlayerDataFunction;  -- This should be a remote function
+local dataChangedEvent = Remotes.PlayerData.dataChanged; -- This should be a remote event
+local getPlayerDataFunction = Remotes.PlayerData.getPlayerData;  -- This should be a remote function
 
 function PlayerDataService._initPlayerData(player : Player)
-	local newSoul = SoulStore.new("PlayerData", player, PlayerDataSchema);
-	newSoul:LoadData();
-	newSoul:Reconcile(PlayerDataSchema);
-		
-    -- This is an example of how to create a container for stats and attach change listeners to update the data through instance value property change
-	local statsContainer = Instance.new("Folder")
-	statsContainer.Name = "Stats";
-	statsContainer.Parent = player;
+  local newSoul = SoulStore.new("PlayerData", player, PlayerDataSchema);
+  newSoul:LoadData();
+  newSoul:Reconcile(PlayerDataSchema);
 
-	local DATA_TYPE_TO_OBJECT = {
-		["string"] = "StringValue",
-		["number"] = "NumberValue",
-		["boolean"] = "BoolValue"
-	}
-	local playerStats = newSoul:GetData({"Stats"});
-	for statName, statValue in pairs(playerStats) do
-		local statObject = Instance.new(DATA_TYPE_TO_OBJECT[typeof(statValue)]);
-		statObject.Name = statName;
-		statObject.Value = statValue;
-		statObject.Parent = statsContainer;
+  local dataLoaded = Instance.new("BoolValue");
+  dataLoaded.Value = true;
+  dataLoaded.Name = "dataLoaded";
+  dataLoaded.Parent = player;
 
-		newSoul:OnDataChanged({"Stats", statName}, function(oldData: any?, newData: any?): nil 
-			statObject.Value = newData;
-		end)
-	end
-		
-	local dataLoaded = Instance.new("BoolValue");
-	dataLoaded.Value = true;
-	dataLoaded.Name = "dataLoaded";
-	dataLoaded.Parent = player;
-	
-	playerSouls[player] = newSoul;
+  playerSouls[player] = newSoul;
 end
 
 function PlayerDataService._onPlayerRemoving(player : Player)
-	local soul = playerSouls[player];
-	if soul then
-		soul:SaveData(true);
-	end
-	playerSouls[player] = nil;
+  local soul = playerSouls[player];
+  if soul then
+    soul:SaveData(true);
+  end
+  playerSouls[player] = nil;
 end
 
 function PlayerDataService.waitForDataLoaded(player : Player)
-	local dataLoaded = player:WaitForChild("dataLoaded");
-	return dataLoaded;
+  local dataLoaded = player:WaitForChild("dataLoaded");
+  return dataLoaded;
 end
 
 function PlayerDataService.getSoul(player : Player)
-	local dataLoaded = PlayerDataService.waitForDataLoaded(player);
-	return playerSouls[player];
+  local _ = PlayerDataService.waitForDataLoaded(player);
+  return playerSouls[player];
 end
 
 function PlayerDataService.setData(player : Player, path : {[number] : string | number}, value : any)
-	local soul = PlayerDataService.getSoul(player);
-	if soul then
-		soul:SetData(path, value);
+  local soul = PlayerDataService.getSoul(player);
+  if soul then
+    soul:SetData(path, value);
 
-		-- Replicate the change to the client
-		dataChangedEvent:FireClient(player, path, value);
-	end
+    -- Replicate the change to the client
+    dataChangedEvent:FireClient(player, path, value);
+  end
 end
 
 function PlayerDataService.getData(player : Player, path : {[number]: string | number})
-	local soul = PlayerDataService.getSoul(player);
-	if soul then
-		return soul:GetData(path);
-	end
+  local soul = PlayerDataService.getSoul(player);
+  if soul then
+    return soul:GetData(path);
+  end
+  return nil;
 end
 
 function PlayerDataService.main()
-	Players.PlayerAdded:Connect(PlayerDataService._initPlayerData);
-	local players = Players:GetPlayers();
-	for i = 1, #players do
-		task.spawn(PlayerDataService._initPlayerData, players[i]);
-	end
-	
-	Players.PlayerRemoving:Connect(PlayerDataService._onPlayerRemoving);
-	getPlayerDataFunction.OnServerInvoke = PlayerDataService.getData;
+  Players.PlayerAdded:Connect(PlayerDataService._initPlayerData);
+  local players = Players:GetPlayers();
+  for i = 1, #players do
+    task.spawn(PlayerDataService._initPlayerData, players[i]);
+  end
+
+  Players.PlayerRemoving:Connect(PlayerDataService._onPlayerRemoving);
+  getPlayerDataFunction:OnServerInvoke(PlayerDataService.getData)
 end
 
 return PlayerDataService
@@ -146,23 +126,27 @@ return PlayerDataService
 Now you want to setup the client side to handle data replication and data management.
 ```lua
 -- Client
-local getPlayerDataFunction = path.to.getPlayerDataFunction
-local dataChangedEvent = path.to.dataChangedEvent
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local ClientPlayerDataService = {}
+local Remotes = require(ReplicatedStorage.Constants.Remotes) -- Remove if using regular remote events
 
--- State
-local playerData = nil;
-local eventSignals = {};
-local queuedChanges = {};
+local PlayerDataController = {}
+
+local dataChangedEvent = Remotes.PlayerData.dataChanged -- Replace with RemoteEvent
+local getPlayerDataFunction = Remotes.PlayerData.getPlayerData -- Replace with RemoteFunction
+
+local playerData = nil
+local eventSignals = {}
+local queuedChanges = {}
+
 
 -- Helpers
-local function pathToKey(path: {[number]: string | number}): string
+local function pathToKey(path: { [number]: string | number }): string
 	return table.concat(path, ".")
 end
 
 -- Traverses playerData down to a given depth
-local function traversePath(path: {[number]: string | number}, depth: number): any?
+local function traversePath(path: { [number]: string | number }, depth: number): any?
 	local data = playerData
 	for i = 1, depth do
 		if type(data) ~= "table" then
@@ -175,35 +159,53 @@ local function traversePath(path: {[number]: string | number}, depth: number): a
 end
 
 -- Private
-
-function ClientPlayerDataService._onDataChanged(path: {[number]: string | number}, value: any)
+function PlayerDataController._onDataChanged(path: { [number]: string | number }, value: any)
 	if playerData == nil then
-		table.insert(queuedChanges, {path, value})
-		return;
+		table.insert(queuedChanges, { path, value })
+		return
 	end
 
 	local parent = traversePath(path, #path - 1)
-	if parent == nil then return end
+	if parent == nil then
+		return
+	end
 
 	local lastIndex = path[#path]
 	local oldData = parent[lastIndex]
 	parent[lastIndex] = value
 
+	-- Notify exact-path listeners
 	local pathKey = pathToKey(path)
 	local callbacks = eventSignals[pathKey]
-	if not callbacks then return end
+	if callbacks then
+		for i = 1, #callbacks do
+			task.spawn(callbacks[i], oldData, value)
+		end
+	end
 
-	for i = 1, #callbacks do
-		task.spawn(callbacks[i], oldData, value)
+	for depth = #path - 1, 1, -1 do
+		local ancestorPath = {}
+		for i = 1, depth do
+			ancestorPath[i] = path[i]
+		end
+
+		local ancestorKey = pathToKey(ancestorPath)
+		local ancestorCallbacks = eventSignals[ancestorKey]
+		if ancestorCallbacks then
+			local ancestorValue = traversePath(ancestorPath, depth)
+			for i = 1, #ancestorCallbacks do
+				task.spawn(ancestorCallbacks[i], nil, ancestorValue)
+			end
+		end
 	end
 end
 
-function ClientPlayerDataService.getData(path: {[number]: string | number}): any?
+function PlayerDataController.getData(path: { [number]: string | number }): any?
 	return traversePath(path, #path)
 end
 
-function ClientPlayerDataService.onDataChanged(
-	path: {[number]: string | number},
+function PlayerDataController.onDataChanged(
+	path: { [number]: string | number },
 	callback: (oldData: any?, newData: any?) -> ()
 )
 	local pathKey = pathToKey(path)
@@ -216,7 +218,9 @@ function ClientPlayerDataService.onDataChanged(
 	return {
 		Disconnect = function()
 			local callbacks = eventSignals[pathKey]
-			if not callbacks then return end
+			if not callbacks then
+				return
+			end
 
 			for i = 1, #callbacks do
 				if callbacks[i] == callback then
@@ -228,24 +232,25 @@ function ClientPlayerDataService.onDataChanged(
 			if #eventSignals[pathKey] == 0 then
 				eventSignals[pathKey] = nil
 			end
-		end
+		end,
 	}
 end
 
-function ClientPlayerDataService.main()
-	dataChangedEvent.OnClientEvent:Connect(ClientPlayerDataService._onDataChanged);
+function PlayerDataController.main()
+	dataChangedEvent:OnClientEvent(PlayerDataController._onDataChanged) -- May need to change to .OnServerEvent
 
-	playerData = getPlayerDataFunction:InvokeServer({});
+	playerData = getPlayerDataFunction:InvokeServer({})
 	for i = 1, #queuedChanges do
-		task.spawn(ClientPlayerDataService._onDataChanged, queuedChanges[i][1], queuedChanges[i][2]);
+		task.spawn(PlayerDataController._onDataChanged, queuedChanges[i][1], queuedChanges[i][2])
 	end
-	table.clear(queuedChanges);
+	table.clear(queuedChanges)
 end
 
-return ClientPlayerDataService
+return PlayerDataController
+
 
 ```
-Make sure you call `ClientPlayerDataService.main()` and `PlayerDataService.main()`!
+Make sure you call `PlayerDataController.main()` and `PlayerDataService.main()`!
 
 ## Configuration
 

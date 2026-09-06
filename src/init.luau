@@ -394,13 +394,28 @@ function SoulStore:GetData(path : {any}?) : any?
 
 	for i = 1, #path do
 		local key = path[i]
-		if data[key] == nil then
+		local isLastKey = (i == #path)
+
+		-- Can't traverse into a non-table value (e.g. path expects a nested table but hit a leaf)
+		if typeof(data) ~= "table" then
 			SoulStore.output(warn, string.format(
-				"SoulStore:GetData => Failed to retrieve data for player %s. '%s' is not a valid property.", 
+				"SoulStore:GetData => Failed to retrieve data for player %s. '%s' is not a valid property.",
 				soul.Player.Name, key
-				))
+			))
 			return nil
 		end
+
+		if data[key] == nil then
+			-- Only warn if this is an intermediate key — a missing leaf value is often expected (e.g. unlock not granted)
+			if not isLastKey then
+				SoulStore.output(warn, string.format(
+					"SoulStore:GetData => Failed to retrieve data for player %s. '%s' is not a valid property.",
+					soul.Player.Name, key
+				))
+			end
+			return nil
+		end
+
 		data = data[key]
 	end
 
