@@ -481,7 +481,6 @@ function SoulStore:SetData(path : {any}, value : any) : any?
 			end
 		end
 	end
-
 	return nil
 end
 
