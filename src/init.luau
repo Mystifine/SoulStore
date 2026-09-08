@@ -431,7 +431,6 @@ end
 function SoulStore:SetData(path : {any}, value : any) : any?
 	local soul : Soul = self
 
-	-- Ensure data is loaded
 	if soul.LoadState ~= LOAD_STATES.Loaded then
 		SoulStore.output(warn, "SoulStore:SetData => Data not loaded for player " .. soul.Player.Name)
 		return nil
@@ -446,25 +445,26 @@ function SoulStore:SetData(path : {any}, value : any) : any?
 	local parent = nil
 	local key = nil
 
-	-- Traverse to the parent of the target
+	local oldValues = {}  -- old value at each prefix length
+	local levels = {}     -- the table that directly owns path[i], for each i
+
 	for pathIndex = 1, #path do
 		key = path[pathIndex]
 		parent = data
+		levels[pathIndex] = parent
+		oldValues[pathIndex] = SoulStore.deepCopy(parent[key])
 
 		if pathIndex == #path then
-			-- Last key, set the value
-			local oldData = SoulStore.deepCopy(parent[key])
 			parent[key] = value
 
-			-- Fire listeners
 			local fullPath = ""
-
 			for k = 1, #path do
 				fullPath = (k == 1) and tostring(path[k]) or (fullPath .. "." .. tostring(path[k]))
 				local listeners = soul._Listeners[fullPath]
 				if listeners then
+					local newValue = levels[k][path[k]]  -- read back post-mutation value at THIS level
 					for _, fn in ipairs(listeners) do
-						task.spawn(fn, oldData, value)
+						task.spawn(fn, oldValues[k], newValue)
 					end
 				end
 			end
@@ -474,14 +474,15 @@ function SoulStore:SetData(path : {any}, value : any) : any?
 			data = data[key]
 			if data == nil then
 				SoulStore.output(warn, string.format(
-					"SoulStore:SetData => Failed to traverse data for player %s. '%s' is not a valid property.", 
+					"SoulStore:SetData => Failed to traverse data for player %s. '%s' is not a valid property.",
 					soul.Player.Name, key
 					))
-				return nil;
+				return nil
 			end
 		end
 	end
-	return nil;
+
+	return nil
 end
 
 --[[

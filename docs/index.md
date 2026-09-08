@@ -1,5 +1,5 @@
 # SoulStore
-**Version:** 1.0.5
+**Version:** 1.0.6
 
 SoulStore is a lightweight Luau module for Roblox that wraps `DataStoreService` with a session-safe, path-based API.
 !!! warning "AI-Assisted Documentation"
