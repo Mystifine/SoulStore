@@ -447,20 +447,25 @@ function SoulStore:SetData(path : {any}, value : any) : any?
 
 	local oldValues = {}  -- old value at each prefix length
 	local levels = {}     -- the table that directly owns path[i], for each i
+	local fullPaths = {}; -- this is to avoid deepCopy spamming and makes it lazy
 
 	for pathIndex = 1, #path do
 		key = path[pathIndex]
 		parent = data
 		levels[pathIndex] = parent
-		oldValues[pathIndex] = SoulStore.deepCopy(parent[key])
+
+		fullPaths[pathIndex] = (pathIndex == 1) and tostring(key) or (fullPaths[pathIndex - 1] .. "." .. tostring(key));
+
+		local prefixListeners = soul._Listeners[fullPaths[pathIndex]];
+		if prefixListeners and #prefixListeners > 0 then -- only deep copy if there is a listener
+			oldValues[pathIndex] = SoulStore.deepCopy(parent[key])
+		end
 
 		if pathIndex == #path then
 			parent[key] = value
 
-			local fullPath = ""
 			for k = 1, #path do
-				fullPath = (k == 1) and tostring(path[k]) or (fullPath .. "." .. tostring(path[k]))
-				local listeners = soul._Listeners[fullPath]
+				local listeners = soul._Listeners[fullPaths[k]];
 				if listeners then
 					local newValue = levels[k][path[k]]  -- read back post-mutation value at THIS level
 					for _, fn in ipairs(listeners) do
