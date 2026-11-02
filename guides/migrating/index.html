@@ -819,6 +819,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#from-200-to-201" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        From 2.0.0 to 2.0.1
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#arguments-that-changed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -933,6 +944,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#from-200-to-201" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        From 2.0.0 to 2.0.1
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#arguments-that-changed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -998,6 +1020,8 @@
 
 <h1 id="migrating-from-1x">Migrating from 1.x</h1>
 <p>The save format is unchanged, so existing saves load without a migration. Drain old servers when you release, because old pending writes cannot enforce the new per-session ownership.</p>
+<h2 id="from-200-to-201">From 2.0.0 to 2.0.1</h2>
+<p>An outage no longer ends a session, so the end reasons <code>LeaseExpired</code> and <code>ShutdownTimeout</code> are gone. <code>SESSION_EXPIRY</code> replaces <code>SESSION_LOCK_EXPIRY</code> and <code>LOCK_TAKEOVER_TIME</code>, and <code>SHUTDOWN_TIMEOUT</code> is gone, because shutdown now runs until every session has settled or Roblox ends the server.</p>
 <h2 id="arguments-that-changed">Arguments that changed</h2>
 <p><code>scope</code> is now the second argument. Pass <code>nil</code> to keep using the same data as before.</p>
 <table>
@@ -1051,7 +1075,7 @@
 </tr>
 <tr>
 <td><code>GetData</code>, <code>SetData</code>, <code>Reconcile</code></td>
-<td>Refused once the session starts ending or its lease expires. Check for <code>nil</code>.</td>
+<td>Refused once the session starts ending. Check for <code>nil</code>.</td>
 </tr>
 <tr>
 <td><code>SetData</code></td>
@@ -1087,7 +1111,7 @@
 </tr>
 <tr>
 <td>Waiting for a lock</td>
-<td>A lock that has not changed for 90 seconds is taken over, instead of waiting out the full 5 minutes. One already older than 5 minutes is watched for 45 seconds rather than taken at once, so an owner that outlived an outage can land its final save first. A healthy session keeps writing, so this does not affect it.</td>
+<td>A lock with no write for 2 minutes can be taken over, instead of waiting out the full 5 minutes. A load first waits 15 seconds to see that it does not change, so an owner that outlived an outage can land its final save first. A healthy session keeps writing, so this does not affect it.</td>
 </tr>
 <tr>
 <td>Saving from a hook</td>
@@ -1116,9 +1140,9 @@
 <a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="kr">end</span>
 </code></pre></div>
 <p><strong>Make sure save hooks do not yield.</strong> A yielding <code>SetOnSave</code> hook now fails every normal save. A final save writes the session without it.</p>
-<p><strong>React when a session ends during play.</strong> If a session loses its record or its lease expires, SoulStore stops accepting changes but does not kick the player. Connect to <code>SessionEndBindableEvent</code>, or the player keeps playing with progress that cannot be saved:</p>
+<p><strong>React when a session ends during play.</strong> If a session loses its record, SoulStore stops accepting changes but does not kick the player. Connect to <code>SessionEndBindableEvent</code>, or the player keeps playing with progress that cannot be saved:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nv">soul</span><span class="p">.</span><span class="py">SessionEndBindableEvent</span><span class="p">.</span><span class="py">Event</span><span class="p">:</span><span class="nf">Connect</span><span class="p">(</span><span class="kr">function</span><span class="p">(</span><span class="nv">_state</span><span class="p">,</span><span class="w"> </span><span class="nv">reason</span><span class="p">)</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span><span class="kr">if</span><span class="w"> </span><span class="nv">player</span><span class="p">.</span><span class="py">Parent</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nv">Players</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="p">(</span><span class="nv">reason</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s2">&quot;OwnershipLost&quot;</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="nv">reason</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s2">&quot;LeaseExpired&quot;</span><span class="p">)</span><span class="w"> </span><span class="kr">then</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span><span class="kr">if</span><span class="w"> </span><span class="nv">player</span><span class="p">.</span><span class="py">Parent</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nv">Players</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="nv">reason</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s2">&quot;OwnershipLost&quot;</span><span class="w"> </span><span class="kr">then</span>
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">        </span><span class="nv">player</span><span class="p">:</span><span class="nf">Kick</span><span class="p">(</span><span class="s2">&quot;Your data session ended. Please rejoin.&quot;</span><span class="p">)</span>
 <a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="kr">end</span>
 <a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="kr">end</span><span class="p">)</span>

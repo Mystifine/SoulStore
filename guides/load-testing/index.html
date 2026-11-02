@@ -1064,7 +1064,7 @@
 
 <h1 id="load-testing">Load Testing</h1>
 <p>Edge case tests check one thing at a time. These check the ordinary day: whether everyone's data is saved consistently and fairly, at a sensible cost, when a whole game is running at once, and what happens when that game has a bad day.</p>
-<p>Everything here was run on 2 November 2026 against version 2.0.0. Run it yourself before you rely on it, because Roblox's limits change.</p>
+<p>Everything here was run on 2 November 2026 against version 2.0.0. Run it yourself before you rely on it, because Roblox's limits change. The session rules have changed since then: there is no lease any more, and one expiry replaces the two old settings. So the outage, crash and shutdown rows below need a new run.</p>
 <h2 id="what-runs">What runs</h2>
 <p><code>tests/load.luau</code> runs a whole game through <code>tests/fleet.luau</code>. Each server runs its own copy of the real module against one shared data store, and players do what they do in a real game: join, load, earn things through <code>SetData</code>, write to the live table, buy things, hop servers, leave, and come back. Time is virtual, so hours pass in minutes.</p>
 <p>Every write is checked as it lands, against what the data store really stored:</p>

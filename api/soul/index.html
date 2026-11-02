@@ -1107,7 +1107,7 @@
 
 
 <h1 id="soul-methods">Soul Methods</h1>
-<p>A soul belongs to one exact Player instance and DataStore. Gameplay access requires an Active session with a current ownership lease. Use <code>getSoul</code> for readiness checks; it also checks lease age. A session starts ending as soon as its player leaves.</p>
+<p>A soul belongs to one exact Player instance and DataStore. Gameplay access requires an Active session. Use <code>getSoul</code> for readiness checks. A session starts ending as soon as its player leaves. An outage does not end a session: it stays Active, and its next save lands once the store is back.</p>
 <h2 id="loaddata"><code>:LoadData()</code></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">LoadData</span><span class="p">()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">(</span><span class="nv">boolean</span><span class="p">,</span><span class="w"> </span><span class="nv">string</span><span class="err">?</span><span class="p">)</span>
 </code></pre></div>
@@ -1193,7 +1193,7 @@
 <a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="kr">end</span><span class="p">)</span>
 </code></pre></div>
 <p>Terminal state alone does not prove that a final save succeeded.</p>
-<p>An expired confirmed lease immediately blocks gameplay access and triggers background finalization. <code>EndReason == "LeaseExpired"</code> identifies a session ended for that reason; if another token already owns the record, finalization instead reports <code>OwnershipLost</code>. SoulStore does not kick the player automatically; the owning service can react to the completion event.</p>
+<p>If another session takes the record, this session's next write is refused and it ends with <code>EndReason == "OwnershipLost"</code>. SoulStore does not kick the player automatically; the owning service can react to the completion event.</p>
 
 
 

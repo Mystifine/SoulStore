@@ -1002,7 +1002,7 @@
 </tr>
 <tr>
 <td><code>LastUpdate</code></td>
-<td>Unix timestamp refreshed by acquisition and saves; used for crash recovery.</td>
+<td>Unix timestamp refreshed by acquisition and saves. Lock age comes from Roblox's own timestamp for the key, so this is only a fallback.</td>
 </tr>
 <tr>
 <td><code>SessionId</code></td>
@@ -1099,7 +1099,7 @@
 </code></pre></div>
 <p>Pulling is pending acquisition or initialization. Active permits gameplay and autosaves. Ending blocks gameplay while finalization runs. Ended and Cancelled are terminal; never reuse those objects. A confirmed acquisition during cancellation is released before settlement. An uncertain acquisition receives bounded recovery attempts, then relies on stale-lock expiry if the service remains unavailable.</p>
 <p><code>LoadData</code> and <code>SaveData</code> return <code>(boolean, string?)</code>. Terminal state alone does not prove a confirmed final save.</p>
-<p>Gameplay methods also check the last confirmed lease age. Prefer <code>getSoul</code> over testing the state string alone. An expired lease blocks gameplay immediately, then background finalization ends the session with <code>LeaseExpired</code> if its final write succeeds, or <code>OwnershipLost</code> if another session has taken over. No automatic player kick occurs.</p>
+<p>An outage does not end a session: it stays Active and keeps accepting changes, and its next save lands once the store is back. If another session takes the record, the next write is refused and the session ends with <code>OwnershipLost</code>. No automatic player kick occurs.</p>
 <h2 id="soulstore"><code>SoulStore</code></h2>
 <p>The exported namespace type describes construction, session lookups, metadata/copy helpers, logging, and resets. See <a href="../soulstore/">Static Methods</a> and <a href="../soul/">Soul Methods</a> for signatures.</p>
 

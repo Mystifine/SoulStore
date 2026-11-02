@@ -1017,7 +1017,7 @@
 <h2 id="installation">Installation</h2>
 <p>Require SoulStore only from server code.</p>
 <p>For Rojo, clone the repository, run <code>rojo build -o SoulStore.rbxlx</code>, and copy the SoulStore module from ServerScriptService into your project.</p>
-<p>For Wally, add <code>soulstore = "mystifine/soulstore@2.0.0"</code> to your project's server dependencies, then run <code>wally install</code>. If your game already uses 1.x, read <a href="../guides/migrating/">Migrating from 1.x</a> first, because some arguments changed.</p>
+<p>For Wally, add <code>soulstore = "mystifine/soulstore@2.0.1"</code> to your project's server dependencies, then run <code>wally install</code>. If your game already uses 1.x, read <a href="../guides/migrating/">Migrating from 1.x</a> first, because some arguments changed.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">SoulStore</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="nv">path</span><span class="p">.</span><span class="py">to</span><span class="p">.</span><span class="py">SoulStore</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="player-lifecycle">Player lifecycle</h2>
@@ -1098,8 +1098,8 @@
 <p>For later changes, have trusted server gameplay call <code>SetData</code> and send the resulting field through your own RemoteEvent. <code>OnDataChanged</code> can drive those deltas. Clients should request actions such as buying an item; the server validates them and decides the data mutation.</p>
 <h2 id="readiness-and-failure-handling">Readiness and failure handling</h2>
 <p><code>LoadData</code> returns <code>true</code> only for Active data. Failed loads, pending locks, and terminal sessions must not enter gameplay. Do not publish a loaded marker, send a default profile to the client, or grant rewards before successful loading.</p>
-<p><code>getSoul</code> returns only usable Active sessions, checking the confirmed lease age. Use <code>getPendingSoul</code> and <code>getEndingSoul</code> for inspection. <code>SessionState</code> describes the lifecycle; <code>LoadState</code> is a compatibility status. An expired lease can deny gameplay access before background finalization changes the lifecycle state.</p>
-<p>React to <code>SessionEndBindableEvent</code> if your game should disconnect or move a player out of gameplay after lease expiry or ownership loss. SoulStore does not kick players automatically. Check <code>EndReason</code> for outcomes such as <code>Saved</code>, <code>LeaseExpired</code>, <code>OwnershipLost</code>, <code>Cancelled</code>, <code>AcquisitionUncertain</code>, <code>SaveRejected</code>, <code>CorruptData</code>, <code>HookFailed</code>, <code>DataStoreError</code>, <code>InternalError</code>, or <code>ShutdownTimeout</code>.</p>
+<p><code>getSoul</code> returns only Active sessions. Use <code>getPendingSoul</code> and <code>getEndingSoul</code> for inspection. <code>SessionState</code> describes the lifecycle; <code>LoadState</code> is a compatibility status.</p>
+<p>React to <code>SessionEndBindableEvent</code> if your game should disconnect or move a player out of gameplay after ownership loss. SoulStore does not kick players automatically. Check <code>EndReason</code> for outcomes such as <code>Saved</code>, <code>OwnershipLost</code>, <code>Cancelled</code>, <code>AcquisitionUncertain</code>, <code>SaveRejected</code>, <code>CorruptData</code>, <code>HookFailed</code>, <code>DataStoreError</code>, or <code>InternalError</code>.</p>
 <p>Check the boolean result of manual <code>SaveData</code> calls when a confirmed write matters. A normal save makes one attempt, so <code>false</code> means it did not land; try again or wait for the next autosave. Session completion also includes cancellation and ownership loss, so a terminal event alone is not proof of a successful final save.</p>
 <h2 id="configuration">Configuration</h2>
 <p>Edit <code>src/Config.luau</code> before deployment.</p>
@@ -1135,7 +1135,12 @@
 <tr>
 <td><code>MAX_RETRY_INTERVAL</code></td>
 <td><code>30</code> seconds</td>
-<td>Longest delay that retries slow down to after repeated failures.</td>
+<td>Longest delay that failed loads slow down to after repeated failures.</td>
+</tr>
+<tr>
+<td><code>MAX_FINAL_SAVE_RETRY_INTERVAL</code></td>
+<td><code>10</code> seconds</td>
+<td>Longest delay between final save attempts. Shorter than loads, so a final save reaches the store first.</td>
 </tr>
 <tr>
 <td><code>AUTO_SAVE_INTERVAL</code></td>
@@ -1143,14 +1148,19 @@
 <td>Background save scheduling interval.</td>
 </tr>
 <tr>
-<td><code>SESSION_LOCK_EXPIRY</code></td>
-<td><code>300</code> seconds</td>
-<td>How long a session keeps working without a confirmed write. A lock older than this takes less waiting for.</td>
+<td><code>SESSION_EXPIRY</code></td>
+<td><code>120</code> seconds</td>
+<td>How long a lock can go without a write before another session may take it.</td>
 </tr>
 <tr>
-<td><code>LOCK_TAKEOVER_TIME</code></td>
-<td><code>90</code> seconds</td>
-<td>How long a load watches a lock that never changes before taking it over. Three autosave intervals.</td>
+<td><code>TAKEOVER_DELAY</code></td>
+<td><code>15</code> seconds</td>
+<td>How long a load waits on a lock past the expiry, taking it only if it has not changed. Set from <code>MAX_FINAL_SAVE_RETRY_INTERVAL</code>, so it is longer than a final save's slowest retry.</td>
+</tr>
+<tr>
+<td><code>HUNG_SAVE_TIME</code></td>
+<td><code>60</code> seconds</td>
+<td>How long a save can run before it no longer holds up the next one.</td>
 </tr>
 <tr>
 <td><code>WRITER_WAIT_TIMEOUT</code></td>
@@ -1162,15 +1172,10 @@
 <td><code>30</code> seconds</td>
 <td>Retry window for releasing a cancelled acquisition with an uncertain response.</td>
 </tr>
-<tr>
-<td><code>SHUTDOWN_TIMEOUT</code></td>
-<td><code>25</code> seconds</td>
-<td>Maximum time spent waiting for shutdown settlement.</td>
-</tr>
 </tbody>
 </table>
-<p>The shared autosave scheduler checks Active souls once per second. Each player's autosaves are spread over the whole interval, a backlog is cleared at no more than twice the steady rate, and when the request budget cannot cover everyone, whoever has waited longest goes first. Normal saves make one attempt. Load and final-save retry delays increase after consecutive failures and are capped at <code>MAX_RETRY_INTERVAL</code>, except during shutdown, when final saves stop slowing down at three times <code>RETRY_INTERVAL</code>. Each wait varies by 20% either way, so players and servers do not retry at the same moment.</p>
-<p>Keep expiry comfortably longer than autosaves and expected request delays. Shutdown uses a bounded finalization budget of about 25 seconds and cannot guarantee successful writes during an outage.</p>
+<p>The shared autosave scheduler checks Active souls once per second. Each player's autosaves are spread over the whole interval, a backlog is cleared at no more than twice the steady rate, and when the request budget cannot cover everyone, whoever has waited longest goes first. Normal saves make one attempt. Failed loads slow down to <code>MAX_RETRY_INTERVAL</code> and final saves to <code>MAX_FINAL_SAVE_RETRY_INTERVAL</code>, except during shutdown, when both stop slowing down at three times <code>RETRY_INTERVAL</code>. Each wait varies by 20% either way, so players and servers do not retry at the same moment.</p>
+<p>Keep the expiry comfortably longer than autosaves and expected request delays. Shutdown keeps the server up until every session has settled, for as long as Roblox allows, which is 30 seconds. It cannot guarantee successful writes during an outage.</p>
 <p>Before deploying this lifecycle update, drain old servers. Existing data does not need migration, but older pending writes cannot enforce the new per-session token model. See <a href="../guides/session-locking/">Session Locking</a>, and <a href="../guides/migrating/">Migrating from 1.x</a> if your game already uses SoulStore.</p>
 
 

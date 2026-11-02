@@ -1056,37 +1056,16 @@
 <p>Departure during pulling cancels loading. If acquisition commits while cancellation is happening, SoulStore releases the acquired record without making it Active. PlayerRemoving targets the exact departing Player instance.</p>
 <p>If the acquisition response failed and ownership is uncertain, cancellation probes only for its own token and releases it without acquiring a free record or refreshing the lock. Recovery retries for up to <code>ACQUISITION_RECOVERY_TIMEOUT</code> (30 seconds by default). If ownership cannot be resolved, the soul settles with <code>AcquisitionUncertain</code> and any remaining lock expires naturally. An already-submitted network request cannot be forcibly interrupted.</p>
 <h2 id="crash-recovery">Crash recovery</h2>
-<p>A load only ever takes a lock after watching it not change, on the load's own clock. How long depends on how old the lock is:</p>
-<table>
-<thead>
-<tr>
-<th>Lock</th>
-<th>Watched for</th>
-<th>Why</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Written recently</td>
-<td><code>LOCK_TAKEOVER_TIME</code> (90 seconds, three autosaves)</td>
-<td>A live session writes every autosave, so this much silence means its server crashed or cannot reach the data store.</td>
-</tr>
-<tr>
-<td>Older than <code>SESSION_LOCK_EXPIRY</code> (300 seconds), by Roblox's <code>UpdatedTime</code> for the key</td>
-<td><code>MAX_RETRY_INTERVAL</code> x 1.5, which is 45 seconds</td>
-<td>A session stops accepting changes when its lease runs out, so an owner this far behind has only its final save left to land. It gets long enough to do that. After a long outage every lock looks this old, and taking one at once would throw away what its owner was still trying to save.</td>
-</tr>
-</tbody>
-</table>
-<p>A failed request restarts the wait, because it says nothing about the owner, which may be failing the same way. A write from the owner restarts it too, and the claim only goes through on the exact version of the lock that was watched. So a healthy session never loses its record, however long another server waits, and however wrong that server's clock is.</p>
-<p>The wait starts over if the player leaves and comes back.</p>
-<p>Any later write from the former owner is rejected by its token check, and that session ends with <code>OwnershipLost</code>.</p>
-<p>The original session also stops accepting gameplay operations when its last confirmed lease reaches <code>SESSION_LOCK_EXPIRY</code>. Background finalization then attempts an ownership-checked final save. A confirmed end for lease expiry records <code>LeaseExpired</code>; takeover by another token records <code>OwnershipLost</code>. The module does not automatically kick the player. Applications can use the completion event to choose their disconnect or recovery flow.</p>
-<p>The two settings do different jobs. <code>LOCK_TAKEOVER_TIME</code> is how long a waiting load watches a lock. <code>SESSION_LOCK_EXPIRY</code> is the lease: how long a session keeps working with no confirmed write, which is also how long players keep playing through an outage.</p>
-<p>Keep both comfortably longer than the autosave interval and expected DataStore delays. Shortening them trades faster crash recovery for a greater chance of taking over a session that is only slow.</p>
+<p><code>SESSION_EXPIRY</code> (2 minutes) is the one setting for session locks. A lock can be taken once Roblox's <code>UpdatedTime</code> for the key says it has gone that long without a write. A live session writes every autosave, so this much silence means its server crashed or cannot reach the data store.</p>
+<p>A load does not take an expired lock on first sight. It waits <code>TAKEOVER_DELAY</code> (15 seconds) and takes it only if it has not changed. After an outage every lock looks expired, and its owner may be about to land its final save, which retries at most about every 10 seconds, so the final save gets there first.</p>
+<p>A failed request restarts that wait, because it says nothing about the owner, which may be failing the same way. A write from the owner restarts it too, and the claim only goes through on the exact version of the lock that was watched. Leaving and coming back costs nothing, because the lock's age keeps counting.</p>
+<p>If this server's clock is slow, a lock can look newer than it is. So a load that has watched a lock for all of <code>SESSION_EXPIRY</code> takes it, however new it looks.</p>
+<p>Any later write from the former owner is rejected by its token check, and that session ends with <code>OwnershipLost</code>. The module does not automatically kick the player. Applications can use the completion event to choose their disconnect or recovery flow.</p>
+<p>An outage does not end a session. It stays Active and keeps accepting changes, and its next save lands once the store is back.</p>
+<p>Keep the expiry comfortably longer than the autosave interval and expected DataStore delays. Shortening it trades faster crash recovery for a greater chance of taking over a session that is only slow.</p>
 <p>Never allow gameplay on defaults while waiting for another session's lock. Existing malformed data is not treated as a missing save.</p>
 <h2 id="shutdown">Shutdown</h2>
-<p><code>BindToClose</code> stops new sessions, cancels pending loads, and requests final saves for active sessions. Already-ending sessions remain tracked. Shutdown checks each session's state until all have settled, within a bounded budget of about 25 seconds. Retries stay short during this time, which allows about six attempts.</p>
+<p><code>BindToClose</code> stops new sessions, cancels pending loads, and requests final saves for active sessions. Already-ending sessions remain tracked. Shutdown checks each session's state until all have settled, and keeps the server up for as long as Roblox allows, which is 30 seconds. Retries stay short during this time, which allows about seven attempts.</p>
 <p>Network outages, hung requests, or platform termination can prevent a confirmed final save. Shutdown does not guarantee that every write succeeds; unreleased locks recover through expiry.</p>
 <p><code>SessionEndBindableEvent</code> fires once for terminal outcomes with <code>(state, reason)</code>. Cancellation or ownership loss is completion, not proof of a successful final save.</p>
 <h2 id="updating-existing-servers">Updating existing servers</h2>

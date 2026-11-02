@@ -1311,8 +1311,13 @@
 </tr>
 <tr>
 <td>Retrying at the same moment as everyone else</td>
-<td>Delays grow by half up to <code>MAX_RETRY_INTERVAL</code>, and each wait varies by 20% either way</td>
+<td>Delays grow by half up to <code>MAX_RETRY_INTERVAL</code>, or <code>MAX_FINAL_SAVE_RETRY_INTERVAL</code> for a final save, and each wait varies by 20% either way</td>
 <td><a href="https://create.roblox.com/docs/cloud-services/data-stores/best-practices">Best practices</a></td>
+</tr>
+<tr>
+<td>A save request never returns</td>
+<td>The next save runs after <code>HUNG_SAVE_TIME</code> (60 seconds). Only the newest write may land, so the hung one cannot undo a newer save if it comes back late</td>
+<td></td>
 </tr>
 <tr>
 <td>A failed load being treated as a new player</td>
@@ -1348,23 +1353,28 @@
 </tr>
 <tr>
 <td>A server crashes while holding a lock</td>
-<td>Another server takes over once the lock has not changed for <code>LOCK_TAKEOVER_TIME</code> (90 seconds), or for 45 seconds if it is older than <code>SESSION_LOCK_EXPIRY</code></td>
+<td>Another server takes over once the lock is past <code>SESSION_EXPIRY</code> (2 minutes) and has looked the same for <code>TAKEOVER_DELAY</code> (15 seconds)</td>
 <td><a href="https://github.com/MadStudioRoblox/ProfileStore">ProfileStore</a></td>
 </tr>
 <tr>
 <td>A healthy server loses its lock to a player waiting elsewhere</td>
-<td>Cannot happen: a live session's autosaves keep restarting the wait</td>
+<td>Its autosaves keep the lock from expiring, unless its clock or the reader's is badly wrong. See below</td>
 <td></td>
 </tr>
 <tr>
 <td>An outage makes a live server look dead</td>
-<td>A failed request restarts the wait, so only an unchanged lock seen through working requests counts</td>
+<td>A failed request restarts <code>TAKEOVER_DELAY</code>, so only an unchanged lock seen through working requests counts. A live session's next autosave can still be up to 30 seconds away, so if that player is loading on a second server just then, the load can win. The old session's next write is refused, and what it had not saved is lost</td>
 <td></td>
 </tr>
 <tr>
-<td>A long outage ends, every lock now looks old, and a new server reaches a lock before its old owner lands its final save</td>
-<td>Even an old lock is watched for longer than a final save's slowest retry, so the final save gets there first and nothing is lost</td>
+<td>A long outage ends, every lock now looks expired, and a new server reaches a lock before its old owner lands its final save</td>
+<td><code>TAKEOVER_DELAY</code> is longer than a final save's slowest retry, so the final save gets there first and nothing is lost</td>
 <td><code>tests/load.luau</code></td>
+</tr>
+<tr>
+<td>A new server's connection recovers more than <code>TAKEOVER_DELAY</code> before the old server's</td>
+<td>The new server takes the expired lock. The old session's next write is refused, so nothing is overwritten, but what it had not saved is lost</td>
+<td></td>
 </tr>
 <tr>
 <td>A server cut off from the store is taken over, then comes back</td>
@@ -1398,16 +1408,16 @@
 <td>Lock age comes from Roblox's <code>UpdatedTime</code>, not the writer's clock</td>
 </tr>
 <tr>
-<td>A reader's clock is slow, so a dead lock never looks old</td>
-<td>The takeover wait uses only the reader's own <code>os.clock</code></td>
+<td>A reader's clock is slow, so a dead lock looks new</td>
+<td>A load that has watched a lock for all of <code>SESSION_EXPIRY</code> takes it, however new it looks</td>
 </tr>
 <tr>
 <td>A server's clock jumps forward or back</td>
-<td>Leases and autosaves use <code>os.clock</code>, so neither ends sessions nor stops saving</td>
+<td>Autosaves use <code>os.clock</code>, so it does not stop them</td>
 </tr>
 <tr>
 <td>A reader's clock is far ahead</td>
-<td>It reads a live lock as old, which only shortens its watch to 45 seconds, and a live session writes every 30. It would take that clock and an owner's failed autosave at the same moment to take a live lock. The old session's next write would be refused, so nothing is overwritten, but what it had not saved yet would be lost</td>
+<td>It reads a live lock as expired, and can take it after <code>TAKEOVER_DELAY</code>, between the owner's autosaves. The old session's next write is refused, so nothing is overwritten, but what it had not saved yet is lost. It takes a clock about 2 minutes off, and that player loading on a second server while the first still holds them</td>
 </tr>
 </tbody>
 </table>
@@ -1470,7 +1480,7 @@
 </tr>
 <tr>
 <td>A request never returns</td>
-<td>Shutdown still ends within <code>SHUTDOWN_TIMEOUT</code>. The lock recovers later</td>
+<td>Roblox ends the server after 30 seconds. The lock recovers when it expires</td>
 <td><a href="https://create.roblox.com/docs/reference/engine/classes/DataModel">BindToClose</a></td>
 </tr>
 <tr>
