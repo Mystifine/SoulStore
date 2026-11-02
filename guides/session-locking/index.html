@@ -623,10 +623,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#the-problem" class="md-nav__link">
+  <a href="#identity-and-lifecycle" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The Problem
+        Identity and lifecycle
       
     </span>
   </a>
@@ -634,10 +634,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#how-soulstore-handles-it" class="md-nav__link">
+  <a href="#acquisition-and-writes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        How SoulStore Handles It
+        Acquisition and writes
       
     </span>
   </a>
@@ -645,10 +645,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#lock-expiry-crash-recovery" class="md-nav__link">
+  <a href="#crash-recovery" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Lock Expiry (Crash Recovery)
+        Crash recovery
       
     </span>
   </a>
@@ -656,10 +656,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#tuning-recommendations" class="md-nav__link">
+  <a href="#shutdown" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Tuning Recommendations
+        Shutdown
       
     </span>
   </a>
@@ -667,10 +667,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#graceful-shutdown" class="md-nav__link">
+  <a href="#updating-existing-servers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Graceful Shutdown
+        Updating existing servers
       
     </span>
   </a>
@@ -798,6 +798,118 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../edge-cases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Edge Cases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../load-testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Load Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../migrating/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 1.x
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How It Works
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -832,10 +944,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#the-problem" class="md-nav__link">
+  <a href="#identity-and-lifecycle" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The Problem
+        Identity and lifecycle
       
     </span>
   </a>
@@ -843,10 +955,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#how-soulstore-handles-it" class="md-nav__link">
+  <a href="#acquisition-and-writes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        How SoulStore Handles It
+        Acquisition and writes
       
     </span>
   </a>
@@ -854,10 +966,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#lock-expiry-crash-recovery" class="md-nav__link">
+  <a href="#crash-recovery" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Lock Expiry (Crash Recovery)
+        Crash recovery
       
     </span>
   </a>
@@ -865,10 +977,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#tuning-recommendations" class="md-nav__link">
+  <a href="#shutdown" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Tuning Recommendations
+        Shutdown
       
     </span>
   </a>
@@ -876,10 +988,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#graceful-shutdown" class="md-nav__link">
+  <a href="#updating-existing-servers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Graceful Shutdown
+        Updating existing servers
       
     </span>
   </a>
@@ -907,64 +1019,79 @@
 
 
 <h1 id="session-locking">Session Locking</h1>
-<h2 id="the-problem">The Problem</h2>
-<p>Roblox does not guarantee only one server has a player loaded at a time. During teleports, crashes, or shutdown races, two servers can briefly both believe they own the same player. If both write to the same DataStore key, the last write wins — potentially overwriting progress.</p>
-<h2 id="how-soulstore-handles-it">How SoulStore Handles It</h2>
-<p>On load, SoulStore uses <code>UpdateAsync</code> to atomically claim ownership of the key:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nv">readData</span><span class="p">.</span><span class="py">MetaData</span><span class="p">.</span><span class="py">Locked</span><span class="w">     </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nv">readData</span><span class="p">.</span><span class="py">MetaData</span><span class="p">.</span><span class="py">SessionId</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="nv">game</span><span class="p">.</span><span class="py">JobId</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nv">readData</span><span class="p">.</span><span class="py">MetaData</span><span class="p">.</span><span class="py">LastUpdate</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">os.time</span><span class="p">()</span>
-</code></pre></div>
-<p>A second server seeing <code>Locked = true</code> with a foreign <code>SessionId</code> enters a retry loop and logs the time remaining until the lock expires. It cannot write to the key until it acquires the lock.</p>
-<p>On a clean session end, the lock is released:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nv">MetaData</span><span class="p">.</span><span class="py">Locked</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nv">MetaData</span><span class="p">.</span><span class="py">SessionId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span>
-</code></pre></div>
-<h2 id="lock-expiry-crash-recovery">Lock Expiry (Crash Recovery)</h2>
-<p>If a server crashes without releasing its lock, the lock expires after <code>SESSION_LOCK_AUTO_RELEASE</code> seconds. The waiting server calculates:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>timeRemaining = SESSION_LOCK_AUTO_RELEASE - (os.time() - MetaData.LastUpdate)
-</code></pre></div>
-<p>Because <code>LastUpdate</code> is refreshed on every auto-save, frequent saves reduce how long a second server must wait after a crash.</p>
-<h2 id="tuning-recommendations">Tuning Recommendations</h2>
+<h2 id="identity-and-lifecycle">Identity and lifecycle</h2>
+<p>SoulStore separates three identities:</p>
 <table>
 <thead>
 <tr>
-<th>Use Case</th>
-<th><code>AUTO_SAVE_INTERVAL</code></th>
-<th><code>SESSION_LOCK_AUTO_RELEASE</code></th>
+<th>Identity</th>
+<th>Use</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Casual game</td>
-<td>60s</td>
-<td>120s</td>
+<td>UserId</td>
+<td>Persisted DataStore key, encoded as a string.</td>
 </tr>
 <tr>
-<td>RPG / economy</td>
-<td>60s</td>
-<td>300s</td>
+<td>Exact Player instance</td>
+<td>Live object lookup within a DataStore and scope.</td>
 </tr>
 <tr>
-<td>Competitive / ranked</td>
-<td>60s</td>
-<td>600s</td>
+<td>GUID SessionToken</td>
+<td>Ownership stored in <code>MetaData.SessionId</code>.</td>
 </tr>
 </tbody>
 </table>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>Always keep <code>SESSION_LOCK_AUTO_RELEASE ≥ AUTO_SAVE_INTERVAL × 3</code>.
-If the release window is shorter than the save interval, a slow auto-save can allow another server to steal the lock mid-session.</p>
-</div>
-<h2 id="graceful-shutdown">Graceful Shutdown</h2>
-<p>SoulStore binds to <code>game:BindToClose</code>, which Roblox calls before planned server shutdowns:</p>
-<ol>
-<li>Spawns a session-ending save for every cached soul.</li>
-<li>Yields until all <code>SessionEndBindableEvent</code> signals fire.</li>
-<li>All locks are released before the process exits.</li>
-</ol>
-<p>Crash scenarios rely on the lock expiry mechanism above.</p>
+<p>Each rejoin creates a fresh Player instance, soul, and token. An old soul can finish saving while a new soul waits for its lock. The old object is never handed to the new Player.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Pulling -&gt; Active -&gt; Ending -&gt; Ended
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>Pulling -&gt; Cancelled
+</code></pre></div>
+<p>Pulling souls are cached to prevent duplicate acquisitions, but are unavailable through <code>getSoul</code> and gameplay methods. Concurrent <code>LoadData</code> calls share one acquisition. Gameplay starts only when <code>LoadData</code> returns <code>true</code>.</p>
+<h2 id="acquisition-and-writes">Acquisition and writes</h2>
+<p><code>UpdateAsync</code> atomically loads the record and claims its lock. A foreign live lock causes retry while the player remains present. An already-owned token is recognized when retrying after an uncertain network response.</p>
+<p>Every save verifies that the persisted record names its exact token. A missing or foreign owner cancels the write, whether the record is locked, released, or expired: those only decide whether a new session may claim it. Returning from <code>UpdateAsync</code> without an API error does not by itself mean the save was accepted.</p>
+<p>Normal saves make one attempt and report the result, because the next autosave carries newer data anyway. Only the final save retries.</p>
+<p>Ending immediately blocks gameplay access and captures the final snapshot. Writers are serialized, so the final save waits behind an in-flight regular save. The same <code>UpdateAsync</code> writes the final data and clears <code>Locked</code> and <code>SessionId</code>. The lock is never released in advance of that write.</p>
+<p>Departure during pulling cancels loading. If acquisition commits while cancellation is happening, SoulStore releases the acquired record without making it Active. PlayerRemoving targets the exact departing Player instance.</p>
+<p>If the acquisition response failed and ownership is uncertain, cancellation probes only for its own token and releases it without acquiring a free record or refreshing the lock. Recovery retries for up to <code>ACQUISITION_RECOVERY_TIMEOUT</code> (30 seconds by default). If ownership cannot be resolved, the soul settles with <code>AcquisitionUncertain</code> and any remaining lock expires naturally. An already-submitted network request cannot be forcibly interrupted.</p>
+<h2 id="crash-recovery">Crash recovery</h2>
+<p>A load only ever takes a lock after watching it not change, on the load's own clock. How long depends on how old the lock is:</p>
+<table>
+<thead>
+<tr>
+<th>Lock</th>
+<th>Watched for</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Written recently</td>
+<td><code>LOCK_TAKEOVER_TIME</code> (90 seconds, three autosaves)</td>
+<td>A live session writes every autosave, so this much silence means its server crashed or cannot reach the data store.</td>
+</tr>
+<tr>
+<td>Older than <code>SESSION_LOCK_EXPIRY</code> (300 seconds), by Roblox's <code>UpdatedTime</code> for the key</td>
+<td><code>MAX_RETRY_INTERVAL</code> x 1.5, which is 45 seconds</td>
+<td>A session stops accepting changes when its lease runs out, so an owner this far behind has only its final save left to land. It gets long enough to do that. After a long outage every lock looks this old, and taking one at once would throw away what its owner was still trying to save.</td>
+</tr>
+</tbody>
+</table>
+<p>A failed request restarts the wait, because it says nothing about the owner, which may be failing the same way. A write from the owner restarts it too, and the claim only goes through on the exact version of the lock that was watched. So a healthy session never loses its record, however long another server waits, and however wrong that server's clock is.</p>
+<p>The wait starts over if the player leaves and comes back.</p>
+<p>Any later write from the former owner is rejected by its token check, and that session ends with <code>OwnershipLost</code>.</p>
+<p>The original session also stops accepting gameplay operations when its last confirmed lease reaches <code>SESSION_LOCK_EXPIRY</code>. Background finalization then attempts an ownership-checked final save. A confirmed end for lease expiry records <code>LeaseExpired</code>; takeover by another token records <code>OwnershipLost</code>. The module does not automatically kick the player. Applications can use the completion event to choose their disconnect or recovery flow.</p>
+<p>The two settings do different jobs. <code>LOCK_TAKEOVER_TIME</code> is how long a waiting load watches a lock. <code>SESSION_LOCK_EXPIRY</code> is the lease: how long a session keeps working with no confirmed write, which is also how long players keep playing through an outage.</p>
+<p>Keep both comfortably longer than the autosave interval and expected DataStore delays. Shortening them trades faster crash recovery for a greater chance of taking over a session that is only slow.</p>
+<p>Never allow gameplay on defaults while waiting for another session's lock. Existing malformed data is not treated as a missing save.</p>
+<h2 id="shutdown">Shutdown</h2>
+<p><code>BindToClose</code> stops new sessions, cancels pending loads, and requests final saves for active sessions. Already-ending sessions remain tracked. Shutdown checks each session's state until all have settled, within a bounded budget of about 25 seconds. Retries stay short during this time, which allows about six attempts.</p>
+<p>Network outages, hung requests, or platform termination can prevent a confirmed final save. Shutdown does not guarantee that every write succeeds; unreleased locks recover through expiry.</p>
+<p><code>SessionEndBindableEvent</code> fires once for terminal outcomes with <code>(state, reason)</code>. Cancellation or ownership loss is completion, not proof of a successful final save.</p>
+<h2 id="updating-existing-servers">Updating existing servers</h2>
+<p>The persisted layout is unchanged: <code>MetaData.SessionId</code> remains a string, now containing an opaque GUID instead of JobId. Existing unlocked saves need no migration; existing locked saves remain protected until release, takeover or expiry.</p>
+<p>Drain old servers when deploying this change. Old code cannot enforce the new lifecycle and may already have pending writes that use only JobId. All new application code must treat SessionId as opaque; log JobId separately when debugging.</p>
 
 
 

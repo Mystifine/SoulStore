@@ -595,6 +595,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#session-completion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Session completion
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -831,6 +842,118 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/edge-cases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Edge Cases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/load-testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Load Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/migrating/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 1.x
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How It Works
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -952,6 +1075,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#session-completion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Session completion
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -973,276 +1107,93 @@
 
 
 <h1 id="soul-methods">Soul Methods</h1>
-<p>Instance methods available on a <code>Soul</code> object.</p>
-<hr />
+<p>A soul belongs to one exact Player instance and DataStore. Gameplay access requires an Active session with a current ownership lease. Use <code>getSoul</code> for readiness checks; it also checks lease age. A session starts ending as soon as its player leaves.</p>
 <h2 id="loaddata"><code>:LoadData()</code></h2>
-<p>Loads player data from the DataStore and acquires a session lock.</p>
-<p><strong>Signature</strong>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">LoadData</span><span class="p">()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kc">nil</span>
-</code></pre></div></p>
-<p><strong>Behaviour</strong></p>
-<ul>
-<li>Yields the calling thread until data loads or the player leaves.</li>
-<li>Retries indefinitely while the key is session-locked or a DataStore error occurs.</li>
-<li>Writes default data if no existing save is found.</li>
-<li>Fires the <code>SetOnLoad</code> callback before <code>LoadState</code> transitions to <code>"Loaded"</code>.</li>
-<li>Caches the soul internally once loading succeeds.</li>
-</ul>
-<p><strong>State Guards</strong></p>
-<table>
-<thead>
-<tr>
-<th>Precondition</th>
-<th>Result</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>LoadState == "Loaded"</code></td>
-<td>No-op</td>
-</tr>
-<tr>
-<td><code>LoadState == "Loading"</code></td>
-<td>No-op</td>
-</tr>
-<tr>
-<td>Player not in game</td>
-<td>No-op</td>
-</tr>
-</tbody>
-</table>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p><code>:LoadData()</code> yields. Wrap in <code>task.spawn</code> if you need non-blocking startup.</p>
-</div>
-<p><strong>Example</strong>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nv">game</span><span class="p">.</span><span class="py">Players</span><span class="p">.</span><span class="py">PlayerAdded</span><span class="p">:</span><span class="nf">Connect</span><span class="p">(</span><span class="kr">function</span><span class="p">(</span><span class="nv">player</span><span class="p">)</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">    </span><span class="kd">local</span><span class="w"> </span><span class="nv">soul</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="s2">&quot;PlayerData&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">player</span><span class="p">,</span><span class="w"> </span><span class="nv">DEFAULT_DATA</span><span class="p">)</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="nv">soul</span><span class="p">:</span><span class="nf">LoadData</span><span class="p">()</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="kr">if</span><span class="w"> </span><span class="nv">soul</span><span class="p">.</span><span class="py">LoadState</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s2">&quot;Loaded&quot;</span><span class="w"> </span><span class="kr">then</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">        </span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Coins:&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">soul</span><span class="p">:</span><span class="nf">GetData</span><span class="p">({</span><span class="w"> </span><span class="s2">&quot;Coins&quot;</span><span class="w"> </span><span class="p">}))</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="kr">end</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="kr">end</span><span class="p">)</span>
-</code></pre></div></p>
-<hr />
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">LoadData</span><span class="p">()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">(</span><span class="nv">boolean</span><span class="p">,</span><span class="w"> </span><span class="nv">string</span><span class="err">?</span><span class="p">)</span>
+</code></pre></div>
+<p>Yields until ownership is acquired and <code>SetOnLoad</code> completes, or loading stops. Returns <code>true</code> only when the soul is Active; otherwise returns <code>false</code> and a reason. Concurrent callers wait for the same load rather than issuing duplicate acquisitions.</p>
+<p>Foreign locks and transient DataStore errors retry while the player remains present. Defaults are written only for a missing record. Malformed existing data, including a record stored as an array, is never replaced with defaults: the load stops with <code>CorruptData</code> and the record is left as it is. Leaving or shutdown cancels pending work. A confirmed acquisition after cancellation is released without starting gameplay. If the response is uncertain, bounded recovery tries to release only this token; an unresolved lock relies on expiry.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">soul</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="s2">&quot;PlayerData&quot;</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nv">player</span><span class="p">,</span><span class="w"> </span><span class="nv">DEFAULT_DATA</span><span class="p">)</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kr">if</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="nv">soul</span><span class="w"> </span><span class="kr">then</span><span class="w"> </span><span class="kr">return</span><span class="w"> </span><span class="kr">end</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="kd">local</span><span class="w"> </span><span class="nv">loaded</span><span class="p">,</span><span class="w"> </span><span class="nv">reason</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">soul</span><span class="p">:</span><span class="nf">LoadData</span><span class="p">()</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="kr">if</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="nv">loaded</span><span class="w"> </span><span class="kr">then</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="nb">warn</span><span class="p">(</span><span class="s2">&quot;Player data unavailable:&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">reason</span><span class="p">)</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span><span class="kr">return</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="kr">end</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Coins:&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">soul</span><span class="p">:</span><span class="nf">GetData</span><span class="p">({</span><span class="w"> </span><span class="s2">&quot;Coins&quot;</span><span class="w"> </span><span class="p">}))</span>
+</code></pre></div>
 <h2 id="savedatasessionending"><code>:SaveData(sessionEnding?)</code></h2>
-<p>Saves the soul's current data to the DataStore.</p>
-<p><strong>Signature</strong>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">SaveData</span><span class="p">(</span><span class="nv">sessionEnding</span><span class="p">:</span><span class="w"> </span><span class="py">boolean</span><span class="err">?</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kc">nil</span>
-</code></pre></div></p>
-<p><strong>Parameters</strong></p>
-<table>
-<thead>
-<tr>
-<th>Parameter</th>
-<th>Type</th>
-<th>Default</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>sessionEnding</code></td>
-<td><code>boolean?</code></td>
-<td><code>false</code></td>
-<td>When <code>true</code>, releases the session lock and cleans up the soul.</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Behaviour</strong></p>
-<ul>
-<li><strong>Mid-session save</strong>: increments <code>SaveId</code>, updates <code>LastUpdate</code>, keeps the lock.</li>
-<li><strong>Session-ending save</strong>: sets <code>Locked = false</code> and <code>SessionId = ""</code>, fires <code>SessionEndBindableEvent</code>, and removes the soul from cache.</li>
-<li>If a session-ending save is triggered while a regular save is running, the regular save is interrupted.</li>
-<li>Retries on DataStore failure until success or the save state changes.</li>
-</ul>
-<p><strong>State Guards</strong></p>
-<table>
-<thead>
-<tr>
-<th>Precondition</th>
-<th>Result</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>LoadState ~= "Loaded"</code></td>
-<td>No-op</td>
-</tr>
-<tr>
-<td><code>SaveState == "SessionEnding"</code></td>
-<td>No-op</td>
-</tr>
-<tr>
-<td><code>SaveState == "Saving"</code> and not session-ending</td>
-<td>No-op</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Example</strong>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">SaveData</span><span class="p">()</span><span class="w">        </span><span class="c1">-- mid-session manual save (e.g. after a purchase)</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">SaveData</span><span class="p">(</span><span class="kc">true</span><span class="p">)</span><span class="w">    </span><span class="c1">-- session-ending (called automatically on PlayerRemoving)</span>
-</code></pre></div></p>
-<hr />
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">SaveData</span><span class="p">(</span><span class="nv">sessionEnding</span><span class="p">:</span><span class="w"> </span><span class="py">boolean</span><span class="err">?</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">(</span><span class="nv">boolean</span><span class="p">,</span><span class="w"> </span><span class="nv">string</span><span class="err">?</span><span class="p">)</span>
+</code></pre></div>
+<p>With <code>false</code> or no argument, saves an Active soul, increments <code>SaveId</code>, refreshes <code>LastUpdate</code>, and retains ownership. It makes one attempt, waiting first behind any save already running. Returns <code>true</code> for a confirmed write; rejected or unavailable operations return <code>false</code> and a reason. A failed attempt is not retried, because the next autosave carries newer data anyway.</p>
+<p>With <code>true</code>, immediately transitions to Ending, captures the final snapshot, and stops gameplay access. The final writer waits behind an in-flight save, then writes data and unlocks in the same <code>UpdateAsync</code>. It retries until the write lands, another session owns the record, or an error occurs that retrying cannot fix, in which case the lock is released without the final data. Repeated end requests coalesce; an end request received while finalization is running may return <code>false, "Ending"</code>. Observe <code>SessionEndBindableEvent</code> or terminal state for completion.</p>
+<p>Foreign or missing ownership is never overwritten or reported as a successful save. Ending a Pulling soul cancels loading instead of saving its defaults. Called from inside a load or save hook, it returns <code>false, "CalledFromHook"</code>. See <a href="../../guides/lifecycle-hooks/">Lifecycle Hooks</a>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">saved</span><span class="p">,</span><span class="w"> </span><span class="nv">reason</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">soul</span><span class="p">:</span><span class="nf">SaveData</span><span class="p">()</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kr">if</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="nv">saved</span><span class="w"> </span><span class="kr">then</span><span class="w"> </span><span class="nb">warn</span><span class="p">(</span><span class="s2">&quot;Save not confirmed:&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">reason</span><span class="p">)</span><span class="w"> </span><span class="kr">end</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1">-- Normally automatic on PlayerRemoving and shutdown:</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">SaveData</span><span class="p">(</span><span class="kc">true</span><span class="p">)</span>
+</code></pre></div>
 <h2 id="getdatapath"><code>:GetData(path?)</code></h2>
-<p>Retrieves a value at the given path from <code>soul.Data</code>.</p>
-<p><strong>Signature</strong>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">GetData</span><span class="p">(</span><span class="nv">path</span><span class="p">:</span><span class="w"> </span><span class="err">{</span><span class="py">any</span><span class="p">}</span><span class="err">?</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nv">any</span><span class="err">?</span>
-</code></pre></div></p>
-<p><strong>Parameters</strong></p>
-<table>
-<thead>
-<tr>
-<th>Parameter</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>path</code></td>
-<td><code>{any}?</code></td>
-<td>Array of keys to traverse. Pass <code>nil</code> to return the full data table.</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Returns</strong> The value at the path, or <code>nil</code> if any key is missing or data is not loaded.</p>
-<p><strong>Example</strong>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">all</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="nv">soul</span><span class="p">:</span><span class="nf">GetData</span><span class="p">()</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kd">local</span><span class="w"> </span><span class="nv">coins</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">soul</span><span class="p">:</span><span class="nf">GetData</span><span class="p">({</span><span class="w"> </span><span class="s2">&quot;Coins&quot;</span><span class="w"> </span><span class="p">})</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="kd">local</span><span class="w"> </span><span class="nv">level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">soul</span><span class="p">:</span><span class="nf">GetData</span><span class="p">({</span><span class="w"> </span><span class="s2">&quot;Stats&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;Level&quot;</span><span class="w"> </span><span class="p">})</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="kd">local</span><span class="w"> </span><span class="nv">item</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="nv">soul</span><span class="p">:</span><span class="nf">GetData</span><span class="p">({</span><span class="w"> </span><span class="s2">&quot;Inventory&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="p">})</span>
-</code></pre></div></p>
-<hr />
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">GetData</span><span class="p">(</span><span class="nv">path</span><span class="p">:</span><span class="w"> </span><span class="err">{</span><span class="py">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="nv">number</span><span class="p">}</span><span class="err">?</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nv">any</span><span class="err">?</span>
+</code></pre></div>
+<p>Returns a nested value, or the full data table when the path is omitted. Returns <code>nil</code> outside Active, for a missing key, or when traversal encounters a non-table.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">coins</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">soul</span><span class="p">:</span><span class="nf">GetData</span><span class="p">({</span><span class="w"> </span><span class="s2">&quot;Coins&quot;</span><span class="w"> </span><span class="p">})</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kd">local</span><span class="w"> </span><span class="nv">level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">soul</span><span class="p">:</span><span class="nf">GetData</span><span class="p">({</span><span class="w"> </span><span class="s2">&quot;Stats&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;Level&quot;</span><span class="w"> </span><span class="p">})</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="kd">local</span><span class="w"> </span><span class="nv">item</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">soul</span><span class="p">:</span><span class="nf">GetData</span><span class="p">({</span><span class="w"> </span><span class="s2">&quot;Inventory&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="p">})</span>
+</code></pre></div>
+<p>Table results remain live references for compatibility. Direct mutation bypasses state guards and listeners, so prefer <code>SetData</code>. The final snapshot is captured when Ending starts; later changes through retained references do not affect it.</p>
 <h2 id="setdatapath-value"><code>:SetData(path, value)</code></h2>
-<p>Sets a value at the given path in <code>soul.Data</code> and fires any registered change listeners.</p>
-<p><strong>Signature</strong>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">SetData</span><span class="p">(</span><span class="nv">path</span><span class="p">:</span><span class="w"> </span><span class="err">{</span><span class="py">any</span><span class="p">},</span><span class="w"> </span><span class="nv">value</span><span class="p">:</span><span class="w"> </span><span class="py">any</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nv">any</span><span class="err">?</span>
-</code></pre></div></p>
-<p><strong>Parameters</strong></p>
-<table>
-<thead>
-<tr>
-<th>Parameter</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>path</code></td>
-<td><code>{any}</code></td>
-<td>One or more keys. Must not be empty.</td>
-</tr>
-<tr>
-<td><code>value</code></td>
-<td><code>any</code></td>
-<td>The value to assign at the final key.</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Returns</strong> The value that was set, or <code>nil</code> on failure.</p>
-<div class="admonition warning">
-<p class="admonition-title">Intermediate Keys Must Exist</p>
-<p><code>:SetData()</code> traverses but does not create intermediate tables. Ensure all nested structures are pre-defined in <code>DEFAULT_DATA</code>.</p>
-</div>
-<p><strong>Example</strong>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">SetData</span><span class="p">(</span><span class="nv">path</span><span class="p">:</span><span class="w"> </span><span class="err">{</span><span class="py">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="nv">number</span><span class="p">},</span><span class="w"> </span><span class="nv">value</span><span class="p">:</span><span class="w"> </span><span class="py">any</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nv">any</span><span class="err">?</span>
+</code></pre></div>
+<p>Sets a value and notifies path listeners. Returns the assigned value, or <code>nil</code> on rejection. Requires an Active soul, a nonempty path, and existing intermediate tables. <code>MetaData</code> is reserved for SoulStore.</p>
+<p>Values a DataStore cannot hold are rejected: functions, threads, Instances and other Roblox types, strings that are not valid UTF-8, table keys that are not strings or numbers, and tables that contain themselves. NaN is rejected as well, because it is always a bug and would replace a good value. If one of these reaches the data through a direct table write, it is left out of each save with a warning instead of failing the save, except NaN, which saves as it is, also with a warning.</p>
+<p>So are writes a DataStore would change or lose: a number key on a table with string keys, including the top of the save, a string key on an array, a number key that is not a whole number from 1, any number key but 1 on a table that is not an array yet, and a value with any of these inside it. See <a href="../../guides/data-operations/#what-can-be-saved">What can be saved</a>. Check the return value when granting something of value.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">SetData</span><span class="p">({</span><span class="w"> </span><span class="s2">&quot;Coins&quot;</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="mi">500</span><span class="p">)</span>
 <a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">SetData</span><span class="p">({</span><span class="w"> </span><span class="s2">&quot;Stats&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;Level&quot;</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="mi">10</span><span class="p">)</span>
 <a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">SetData</span><span class="p">({</span><span class="w"> </span><span class="s2">&quot;Inventory&quot;</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;Sword&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;Shield&quot;</span><span class="w"> </span><span class="p">})</span>
-</code></pre></div></p>
-<hr />
+</code></pre></div>
 <h2 id="reconciledata"><code>:Reconcile(data)</code></h2>
-<p>Merges an external table into <code>soul.Data</code>, filling in only keys that are currently <code>nil</code>.</p>
-<p><strong>Signature</strong>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">Reconcile</span><span class="p">(</span><span class="nv">data</span><span class="p">:</span><span class="w"> </span><span class="err">{}?)</span><span class="w"> </span><span class="err">-&gt;</span><span class="w"> </span><span class="py">nil</span>
-</code></pre></div></p>
-<p><strong>Behaviour</strong></p>
-<ul>
-<li>Recursive — handles nested tables.</li>
-<li>Never overwrites an existing value.</li>
-<li>Warns and returns early if data is not loaded or <code>data</code> is <code>nil</code>.</li>
-</ul>
-<p><strong>Example</strong>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">DEFAULTS</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">Coins</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nv">Level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nv">NewField</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;hello&quot;</span><span class="w"> </span><span class="p">}</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">SetOnLoad</span><span class="p">(</span><span class="kr">function</span><span class="p">()</span>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">    </span><span class="nv">soul</span><span class="p">:</span><span class="nf">Reconcile</span><span class="p">(</span><span class="nv">DEFAULTS</span><span class="p">)</span><span class="w"> </span><span class="c1">-- back-fills NewField on old saves</span>
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="kr">end</span><span class="p">)</span>
-</code></pre></div></p>
-<hr />
+</code></pre></div>
+<p>Recursively fills missing string keys on an Active soul without replacing existing values. An array the save already has is left as it is, and a missing one is copied whole. Newly inserted tables are copied; reserved metadata is excluded.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kr">if</span><span class="w"> </span><span class="nv">soul</span><span class="p">:</span><span class="nf">LoadData</span><span class="p">()</span><span class="w"> </span><span class="kr">then</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">    </span><span class="nv">soul</span><span class="p">:</span><span class="nf">Reconcile</span><span class="p">(</span><span class="nv">DEFAULT_DATA</span><span class="p">)</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="kr">end</span>
+</code></pre></div>
+<p>Inside <code>SetOnLoad</code>, work directly on the callback argument; gameplay methods are unavailable before Active.</p>
 <h2 id="ondatachangedpath-callback"><code>:OnDataChanged(path, callback)</code></h2>
-<p>Registers a listener that fires when a value at <code>path</code> changes via <code>:SetData()</code>.</p>
-<p><strong>Signature</strong>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">OnDataChanged</span><span class="p">(</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">    </span><span class="nv">path</span><span class="w">     </span><span class="p">:</span><span class="w"> </span><span class="err">{</span><span class="py">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="nv">number</span><span class="p">},</span>
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">    </span><span class="nv">callback</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="err">(</span><span class="py">oldData</span><span class="p">:</span><span class="w"> </span><span class="py">any</span><span class="err">?</span><span class="p">,</span><span class="w"> </span><span class="nv">newData</span><span class="p">:</span><span class="w"> </span><span class="py">any</span><span class="err">?</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kc">nil</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">    </span><span class="nv">path</span><span class="p">:</span><span class="w"> </span><span class="err">{</span><span class="py">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="nv">number</span><span class="p">}</span><span class="err">?</span><span class="p">,</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">    </span><span class="nv">callback</span><span class="p">:</span><span class="w"> </span><span class="err">(</span><span class="py">oldData</span><span class="p">:</span><span class="w"> </span><span class="py">any</span><span class="err">?</span><span class="p">,</span><span class="w"> </span><span class="nv">newData</span><span class="p">:</span><span class="w"> </span><span class="py">any</span><span class="err">?</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kc">nil</span>
 <a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">Disconnect</span><span class="p">:</span><span class="w"> </span><span class="err">()</span><span class="w"> </span><span class="err">-&gt;</span><span class="w"> </span><span class="py">nil</span><span class="w"> </span><span class="p">}</span>
-</code></pre></div></p>
-<p><strong>Parameters</strong></p>
-<table>
-<thead>
-<tr>
-<th>Parameter</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>path</code></td>
-<td><code>{string | number}</code></td>
-<td>Path to watch. Also fires for <code>:SetData()</code> calls whose path passes through this path.</td>
-</tr>
-<tr>
-<td><code>callback</code></td>
-<td><code>function</code></td>
-<td>Receives <code>oldData</code> and <code>newData</code>. Called via <code>task.spawn</code>.</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Returns</strong> A connection object with a <code>Disconnect()</code> method.</p>
-<div class="admonition note">
-<p class="admonition-title">Partial Path Matching</p>
-<p>A listener on <code>{ "Stats" }</code> fires when <code>:SetData({ "Stats", "Level" }, 5)</code> is called. See the <a href="../../guides/listeners/">Change Listeners guide</a> for details.</p>
-</div>
-<p><strong>Example</strong>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">conn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">soul</span><span class="p">:</span><span class="nf">OnDataChanged</span><span class="p">({</span><span class="w"> </span><span class="s2">&quot;Coins&quot;</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="kr">function</span><span class="p">(</span><span class="nv">old</span><span class="p">,</span><span class="w"> </span><span class="nv">new</span><span class="p">)</span>
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">    </span><span class="nb">print</span><span class="p">((</span><span class="s2">&quot;Coins: %d → %d&quot;</span><span class="p">):</span><span class="nf">format</span><span class="p">(</span><span class="nv">old</span><span class="p">,</span><span class="w"> </span><span class="nv">new</span><span class="p">))</span>
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="kr">end</span><span class="p">)</span>
-<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">SetData</span><span class="p">({</span><span class="w"> </span><span class="s2">&quot;Coins&quot;</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="mi">100</span><span class="p">)</span><span class="w"> </span><span class="c1">--&gt; Coins: 0 → 100</span>
-<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="nv">conn</span><span class="p">:</span><span class="nf">Disconnect</span><span class="p">()</span>
-</code></pre></div></p>
-<hr />
+</code></pre></div>
+<p>Registers a listener for <code>SetData</code> changes. A listener on <code>{ "Stats" }</code> also fires for <code>{ "Stats", "Level" }</code>. It receives copies of the old and new values. Pass <code>nil</code> to observe the full data table. Call <code>Disconnect()</code> to unsubscribe. Listeners are cleaned up when the soul terminates. See <a href="../../guides/listeners/">Change Listeners</a>.</p>
 <h2 id="setonloadcallback"><code>:SetOnLoad(callback)</code></h2>
-<p>Registers a callback called after data is read from the DataStore, before <code>LoadState</code> becomes <code>"Loaded"</code>.</p>
-<p><strong>Signature</strong>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">SetOnLoad</span><span class="p">(</span><span class="nv">callback</span><span class="p">:</span><span class="w"> </span><span class="err">(</span><span class="py">data</span><span class="p">:</span><span class="w"> </span><span class="err">{})</span><span class="w"> </span><span class="err">-&gt;</span><span class="w"> </span><span class="py">nil</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kc">nil</span>
-</code></pre></div></p>
-<p>The callback receives the raw data table <strong>by reference</strong>. Mutations affect what the soul stores in memory.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Must be called <strong>before</strong> <code>:LoadData()</code>.</p>
-</div>
-<p><strong>Example</strong>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">SetOnLoad</span><span class="p">(</span><span class="kr">function</span><span class="p">(</span><span class="nv">data</span><span class="p">)</span>
-<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">    </span><span class="nv">data</span><span class="p">.</span><span class="py">Coins</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">math</span><span class="p">.</span><span class="nf">clamp</span><span class="p">(</span><span class="nv">data</span><span class="p">.</span><span class="py">Coins</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="nv">_000_000</span><span class="p">)</span>
-<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="kr">end</span><span class="p">)</span>
-<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">LoadData</span><span class="p">()</span>
-</code></pre></div></p>
-<hr />
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">SetOnLoad</span><span class="p">(</span><span class="nv">callback</span><span class="p">:</span><span class="w"> </span><span class="err">(</span><span class="py">data</span><span class="p">:</span><span class="w"> </span><span class="err">{})</span><span class="w"> </span><span class="err">-&gt;</span><span class="w"> </span><span class="py">nil</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kc">nil</span>
+</code></pre></div>
+<p>Register before loading. Receives acquired data for validation or migration before Active. Mutate the argument directly. Hooks must not yield or modify <code>MetaData</code>.</p>
+<p>A failed hook prevents gameplay. SoulStore releases ownership using the original acquired record, so partial migration changes are not saved.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">SetOnLoad</span><span class="p">(</span><span class="kr">function</span><span class="p">(</span><span class="nv">data</span><span class="p">)</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">    </span><span class="nv">data</span><span class="p">.</span><span class="py">Coins</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">math</span><span class="p">.</span><span class="nf">clamp</span><span class="p">(</span><span class="nv">data</span><span class="p">.</span><span class="py">Coins</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="nv">_000_000</span><span class="p">)</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="kr">end</span><span class="p">)</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="kd">local</span><span class="w"> </span><span class="nv">loaded</span><span class="p">,</span><span class="w"> </span><span class="nv">reason</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">soul</span><span class="p">:</span><span class="nf">LoadData</span><span class="p">()</span>
+</code></pre></div>
 <h2 id="setonsavecallback"><code>:SetOnSave(callback)</code></h2>
-<p>Registers a callback called before each DataStore write, receiving a <strong>deep copy</strong> of <code>soul.Data</code>.</p>
-<p><strong>Signature</strong>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">SetOnSave</span><span class="p">(</span><span class="nv">callback</span><span class="p">:</span><span class="w"> </span><span class="err">(</span><span class="py">data</span><span class="p">:</span><span class="w"> </span><span class="err">{})</span><span class="w"> </span><span class="err">-&gt;</span><span class="w"> </span><span class="py">nil</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kc">nil</span>
-</code></pre></div></p>
-<p>Mutations affect only the save snapshot — <code>soul.Data</code> is not changed.</p>
-<p><strong>Example</strong>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">SetOnSave</span><span class="p">(</span><span class="kr">function</span><span class="p">(</span><span class="nv">snapshot</span><span class="p">)</span>
-<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">    </span><span class="nv">snapshot</span><span class="p">.</span><span class="py">TempBoost</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="c1">-- strip runtime-only field before saving</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">SetOnSave</span><span class="p">(</span><span class="nv">callback</span><span class="p">:</span><span class="w"> </span><span class="err">(</span><span class="py">snapshot</span><span class="p">:</span><span class="w"> </span><span class="err">{})</span><span class="w"> </span><span class="err">-&gt;</span><span class="w"> </span><span class="py">nil</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kc">nil</span>
+</code></pre></div>
+<p>Receives a copy of the save payload. Changes affect only that attempt, not live data. Hooks must not yield, modify <code>MetaData</code>, or perform non-idempotent side effects: they may run again on retries. Failed hooks do not commit their partial snapshots.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">SetOnSave</span><span class="p">(</span><span class="kr">function</span><span class="p">(</span><span class="nv">snapshot</span><span class="p">)</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">    </span><span class="nv">snapshot</span><span class="p">.</span><span class="py">TempBoost</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">nil</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="kr">end</span><span class="p">)</span>
+</code></pre></div>
+<h2 id="session-completion">Session completion</h2>
+<p><code>SessionEndBindableEvent.Event</code> fires once with <code>(state, reason)</code> for terminal outcomes, including cancellation and ownership loss. The event and listeners are then destroyed. Connect before starting work; inspect <code>SessionState</code> and <code>EndReason</code> after completion instead of waiting for an event that already fired.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="nv">soul</span><span class="p">.</span><span class="py">SessionEndBindableEvent</span><span class="p">.</span><span class="py">Event</span><span class="p">:</span><span class="nf">Connect</span><span class="p">(</span><span class="kr">function</span><span class="p">(</span><span class="nv">state</span><span class="p">,</span><span class="w"> </span><span class="nv">reason</span><span class="p">)</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">    </span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Data session settled:&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">state</span><span class="p">,</span><span class="w"> </span><span class="nv">reason</span><span class="p">)</span>
 <a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="kr">end</span><span class="p">)</span>
-</code></pre></div></p>
+</code></pre></div>
+<p>Terminal state alone does not prove that a final save succeeded.</p>
+<p>An expired confirmed lease immediately blocks gameplay access and triggers background finalization. <code>EndReason == "LeaseExpired"</code> identifies a session ended for that reason; if another token already owns the record, finalization instead reports <code>OwnershipLost</code>. SoulStore does not kick the player automatically; the owning service can react to the completion event.</p>
 
 
 

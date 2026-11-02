@@ -381,7 +381,7 @@
   <a href="#quick-start" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Quick Start
+        Quick start
       
     </span>
   </a>
@@ -758,6 +758,118 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="guides/edge-cases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Edge Cases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="guides/load-testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Load Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="guides/migrating/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 1.x
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="guides/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How It Works
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -806,7 +918,7 @@
   <a href="#quick-start" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Quick Start
+        Quick start
       
     </span>
   </a>
@@ -834,12 +946,7 @@
 
 
 <h1 id="soulstore">SoulStore</h1>
-<p><strong>Version:</strong> 1.0.8</p>
-<p>SoulStore is a lightweight Luau module for Roblox that wraps <code>DataStoreService</code> with a session-safe, path-based API.</p>
-<div class="admonition warning">
-<p class="admonition-title">AI-Assisted Documentation</p>
-<p>Documentation is AI-Assisted and may contain inaccuracies. Please report any issues or suggestions on the <a href="https://github.com/Mystifine/SoulStore/issues">GitHub Issues Page</a>.</p>
-</div>
+<p>SoulStore is a server-side Luau module for Roblox with per-session DataStore ownership and a path-based API.</p>
 <h2 id="features">Features</h2>
 <table>
 <thead>
@@ -850,48 +957,59 @@
 </thead>
 <tbody>
 <tr>
-<td><strong>Session Locking</strong></td>
-<td>Prevents concurrent server writes to the same player key.</td>
+<td>Session ownership</td>
+<td>GUID tokens distinguish sessions even within the same server.</td>
 </tr>
 <tr>
-<td><strong>Auto-Save</strong></td>
-<td>Saves all active souls in the background at a configurable interval.</td>
+<td>Lifecycle</td>
+<td>Pending and ending souls are unavailable for gameplay.</td>
 </tr>
 <tr>
-<td><strong>Path-Based API</strong></td>
-<td>Navigate nested data with key arrays instead of raw table references.</td>
+<td>Autosave</td>
+<td>Shared scheduling saves Active souls in the background, spread evenly, with everyone getting a turn when the budget is tight.</td>
 </tr>
 <tr>
-<td><strong>Change Listeners</strong></td>
-<td>Subscribe to value changes at any path depth.</td>
+<td>Safe saves</td>
+<td>A stray key or an odd table cannot wipe out a save, and nothing in it is quietly lost.</td>
 </tr>
 <tr>
-<td><strong>Lifecycle Hooks</strong></td>
-<td>Transform or validate data before save and after load.</td>
+<td>Serialized finalization</td>
+<td>Final save and unlock happen atomically after any current writer.</td>
 </tr>
 <tr>
-<td><strong>Graceful Shutdown</strong></td>
-<td>Flushes all souls before the server closes via <code>BindToClose</code>.</td>
+<td>Data API</td>
+<td>Nested paths, change listeners, reconciliation, and load/save hooks.</td>
+</tr>
+<tr>
+<td>Shutdown</td>
+<td>Cancels pending work and retries final saves within a bounded budget.</td>
 </tr>
 </tbody>
 </table>
-<h2 id="quick-start">Quick Start</h2>
-<p><div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>rojo build -o SoulStore.rbxlx
+<h2 id="quick-start">Quick start</h2>
+<p>Build the Rojo project with <code>rojo build -o SoulStore.rbxlx</code>, or install the Wally package. Require SoulStore from a server Script.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">SoulStore</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="nv">path</span><span class="p">.</span><span class="py">to</span><span class="p">.</span><span class="py">SoulStore</span><span class="p">)</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kd">local</span><span class="w"> </span><span class="nv">DEFAULT_DATA</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">Coins</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nv">Level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="nv">game</span><span class="p">.</span><span class="py">Players</span><span class="p">.</span><span class="py">PlayerAdded</span><span class="p">:</span><span class="nf">Connect</span><span class="p">(</span><span class="kr">function</span><span class="p">(</span><span class="nv">player</span><span class="p">)</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span><span class="c1">-- The second argument is the DataStore scope. nil uses Roblox&#39;s default.</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">    </span><span class="kd">local</span><span class="w"> </span><span class="nv">soul</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="s2">&quot;PlayerData&quot;</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nv">player</span><span class="p">,</span><span class="w"> </span><span class="nv">DEFAULT_DATA</span><span class="p">)</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span><span class="kr">if</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="nv">soul</span><span class="w"> </span><span class="kr">then</span><span class="w"> </span><span class="kr">return</span><span class="w"> </span><span class="kr">end</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">    </span><span class="kd">local</span><span class="w"> </span><span class="nv">loaded</span><span class="p">,</span><span class="w"> </span><span class="nv">reason</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">soul</span><span class="p">:</span><span class="nf">LoadData</span><span class="p">()</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">    </span><span class="kr">if</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="nv">loaded</span><span class="w"> </span><span class="kr">then</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">        </span><span class="nb">warn</span><span class="p">(</span><span class="s2">&quot;Player data unavailable:&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">reason</span><span class="p">)</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">        </span><span class="kr">return</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">    </span><span class="kr">end</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">    </span><span class="nv">soul</span><span class="p">:</span><span class="nf">Reconcile</span><span class="p">(</span><span class="nv">DEFAULT_DATA</span><span class="p">)</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">    </span><span class="nv">soul</span><span class="p">:</span><span class="nf">SetData</span><span class="p">({</span><span class="w"> </span><span class="s2">&quot;Coins&quot;</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="nv">soul</span><span class="p">:</span><span class="nf">GetData</span><span class="p">({</span><span class="w"> </span><span class="s2">&quot;Coins&quot;</span><span class="w"> </span><span class="p">})</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">50</span><span class="p">)</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="kr">end</span><span class="p">)</span>
 </code></pre></div>
-Place <code>SoulStore.lua</code> in <code>ServerScriptService</code> or a shared server <code>Modules</code> folder and <code>require</code> it from a <code>Script</code>.
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">SoulStore</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="nv">path</span><span class="p">.</span><span class="py">to</span><span class="p">.</span><span class="py">SoulStore</span><span class="p">)</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="kd">local</span><span class="w"> </span><span class="nv">DEFAULT_DATA</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">Coins</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nv">Level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="p">}</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="nv">game</span><span class="p">.</span><span class="py">Players</span><span class="p">.</span><span class="py">PlayerAdded</span><span class="p">:</span><span class="nf">Connect</span><span class="p">(</span><span class="kr">function</span><span class="p">(</span><span class="nv">player</span><span class="p">)</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span><span class="kd">local</span><span class="w"> </span><span class="nv">soul</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="s2">&quot;PlayerData&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">player</span><span class="p">,</span><span class="w"> </span><span class="nv">DEFAULT_DATA</span><span class="p">)</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="nv">soul</span><span class="p">:</span><span class="nf">LoadData</span><span class="p">()</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span><span class="nv">soul</span><span class="p">:</span><span class="nf">SetData</span><span class="p">({</span><span class="w"> </span><span class="s2">&quot;Coins&quot;</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="nv">soul</span><span class="p">:</span><span class="nf">GetData</span><span class="p">({</span><span class="w"> </span><span class="s2">&quot;Coins&quot;</span><span class="w"> </span><span class="p">})</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">50</span><span class="p">)</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="kr">end</span><span class="p">)</span>
-</code></pre></div></p>
+<p>Read <a href="getting-started/">Getting Started</a> for integration and <a href="guides/session-locking/">Session Locking</a> for lifecycle, crash recovery, and rollout guidance. Never start gameplay on a pending soul or use defaults when loading fails.</p>
 <div class="admonition warning">
-<p class="admonition-title">Server-Only</p>
-<p><code>DataStoreService</code> is unavailable on the client. Never require SoulStore from a <code>LocalScript</code>.</p>
+<p class="admonition-title">Server only</p>
+<p>DataStoreService is unavailable on the client. Require SoulStore only from server code.</p>
 </div>
 
 

@@ -776,6 +776,118 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/edge-cases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Edge Cases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/load-testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Load Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/migrating/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 1.x
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How It Works
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -863,126 +975,133 @@
 
 
 <h1 id="types">Types</h1>
-<p>SoulStore exports three Luau types for use in typed scripts.</p>
-<hr />
 <h2 id="soulmetadata"><code>SoulMetaData</code></h2>
-<p>Internal metadata stored alongside every player's data table. Managed automatically — do not write to these fields manually.</p>
+<p>Metadata persisted beside player data and managed by SoulStore:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nv">export</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span><span class="nv">SoulMetaData</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span><span class="nv">Locked</span><span class="w">     </span><span class="p">:</span><span class="w"> </span><span class="py">boolean</span><span class="p">,</span><span class="w"> </span><span class="c1">-- true while a server owns the session</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="nv">SaveId</span><span class="w">     </span><span class="p">:</span><span class="w"> </span><span class="py">number</span><span class="p">,</span><span class="w">  </span><span class="c1">-- incremented on every successful write</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="nv">LastUpdate</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="py">number</span><span class="p">,</span><span class="w">  </span><span class="c1">-- os.time() of the last DataStore write</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span><span class="nv">SessionId</span><span class="w">  </span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="p">,</span><span class="w">  </span><span class="c1">-- game.JobId of the owning server; &quot;&quot; when unlocked</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span><span class="nv">Locked</span><span class="p">:</span><span class="w"> </span><span class="py">boolean</span><span class="p">,</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="nv">SaveId</span><span class="p">:</span><span class="w"> </span><span class="py">number</span><span class="p">,</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="nv">LastUpdate</span><span class="p">:</span><span class="w"> </span><span class="py">number</span><span class="p">,</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span><span class="nv">SessionId</span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="p">,</span>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="p">}</span>
 </code></pre></div>
 <table>
 <thead>
 <tr>
 <th>Field</th>
-<th>Type</th>
-<th>Description</th>
+<th>Meaning</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>Locked</code></td>
-<td><code>boolean</code></td>
-<td>Whether the key is owned by an active server.</td>
+<td>A session owns the key.</td>
 </tr>
 <tr>
 <td><code>SaveId</code></td>
-<td><code>number</code></td>
-<td>Monotonic save counter. Useful for auditing.</td>
+<td>Save counter derived from the persisted record when saving.</td>
 </tr>
 <tr>
 <td><code>LastUpdate</code></td>
-<td><code>number</code></td>
-<td>Timestamp of the last write; used to calculate lock expiry.</td>
+<td>Unix timestamp refreshed by acquisition and saves; used for crash recovery.</td>
 </tr>
 <tr>
 <td><code>SessionId</code></td>
-<td><code>string</code></td>
-<td><code>game.JobId</code> of the owner. Empty string when unlocked.</td>
+<td>Opaque GUID session token, or <code>""</code> when unlocked.</td>
 </tr>
 </tbody>
 </table>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p><code>MetaData</code> lives at <code>soul.Data.MetaData</code> and is persisted alongside player data.</p>
-</div>
-<hr />
+<p><code>MetaData</code> is reserved. <code>game.JobId</code> identifies a server, not its individual player sessions.</p>
 <h2 id="soul"><code>Soul</code></h2>
-<p>Represents a single player's live data session.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nv">export</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span><span class="nv">Soul</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">    </span><span class="nv">DatastoreId</span><span class="w">             </span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="p">,</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="nv">Player</span><span class="w">                  </span><span class="p">:</span><span class="w"> </span><span class="py">Player</span><span class="p">,</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="nv">Data</span><span class="w">                    </span><span class="p">:</span><span class="w"> </span><span class="err">{</span><span class="w"> </span><span class="py">MetaData</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="py">SoulMetaData</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="nv">LastAutoSave</span><span class="w">            </span><span class="p">:</span><span class="w"> </span><span class="py">number</span><span class="p">,</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span><span class="nv">LoadState</span><span class="w">               </span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="p">,</span><span class="w"> </span><span class="c1">-- &quot;Idle&quot; | &quot;Loading&quot; | &quot;Loaded&quot;</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="nv">SaveState</span><span class="w">               </span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="p">,</span><span class="w"> </span><span class="c1">-- &quot;Idle&quot; | &quot;Saving&quot; | &quot;SessionEnding&quot;</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span><span class="nv">SessionEndBindableEvent</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="py">BindableEvent</span><span class="p">,</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="p">}</span>
-</code></pre></div>
+<p>A soul represents one DataStore session for one exact Player instance. Do not reassign identity properties.</p>
 <table>
 <thead>
 <tr>
 <th>Property</th>
 <th>Type</th>
-<th>Description</th>
+<th>Meaning</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>DatastoreId</code></td>
 <td><code>string</code></td>
-<td>DataStore name this soul reads/writes.</td>
+<td>DataStore name.</td>
+</tr>
+<tr>
+<td><code>Scope</code></td>
+<td><code>string</code></td>
+<td>DataStore scope; <code>"global"</code> unless one was given.</td>
+</tr>
+<tr>
+<td><code>DatastoreKey</code></td>
+<td><code>string</code></td>
+<td>Persisted key, the UserId as a string.</td>
 </tr>
 <tr>
 <td><code>Player</code></td>
 <td><code>Player</code></td>
-<td>The associated <code>Player</code> instance.</td>
+<td>Exact Player instance.</td>
+</tr>
+<tr>
+<td><code>UserId</code></td>
+<td><code>number</code></td>
+<td>Immutable UserId used for the persisted key.</td>
+</tr>
+<tr>
+<td><code>SessionToken</code></td>
+<td><code>string</code></td>
+<td>Immutable GUID identifying this session.</td>
 </tr>
 <tr>
 <td><code>Data</code></td>
 <td><code>table</code></td>
-<td>Live data table. Mutated by <code>:SetData()</code>.</td>
+<td>Live data; use only while Active.</td>
 </tr>
 <tr>
 <td><code>LastAutoSave</code></td>
 <td><code>number</code></td>
-<td>Timestamp of the last auto-save.</td>
+<td>When the last save started, in <code>os.clock</code> time.</td>
+</tr>
+<tr>
+<td><code>IsSaving</code></td>
+<td><code>boolean</code></td>
+<td>A save is in flight.</td>
+</tr>
+<tr>
+<td><code>SessionState</code></td>
+<td><code>string</code></td>
+<td>Authoritative lifecycle state.</td>
+</tr>
+<tr>
+<td><code>EndReason</code></td>
+<td><code>string?</code></td>
+<td>Reason the session settled.</td>
 </tr>
 <tr>
 <td><code>LoadState</code></td>
 <td><code>string</code></td>
-<td>Current load phase.</td>
+<td>Compatibility load status; use SessionState for readiness.</td>
 </tr>
 <tr>
 <td><code>SaveState</code></td>
 <td><code>string</code></td>
-<td>Current save phase.</td>
+<td>Compatibility save status.</td>
 </tr>
 <tr>
 <td><code>SessionEndBindableEvent</code></td>
 <td><code>BindableEvent</code></td>
-<td>Fires once after a successful session-ending save.</td>
+<td>Fires once with <code>(state, reason)</code>, then is destroyed.</td>
 </tr>
 </tbody>
 </table>
-<hr />
-<h2 id="soulstore"><code>SoulStore</code></h2>
-<p>The module table, usable as a static namespace.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nv">export</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span><span class="nv">SoulStore</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span><span class="nv">ClassName</span><span class="w">    </span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="p">,</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="nv">new</span><span class="w">          </span><span class="p">:</span><span class="w"> </span><span class="err">(</span><span class="py">datastoreId</span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="p">,</span><span class="w"> </span><span class="nv">player</span><span class="p">:</span><span class="w"> </span><span class="py">Player</span><span class="p">,</span><span class="w"> </span><span class="nv">defaultData</span><span class="p">:</span><span class="w"> </span><span class="err">{})</span><span class="w"> </span><span class="err">-&gt;</span><span class="w"> </span><span class="py">Soul</span><span class="err">?</span><span class="p">,</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="nv">getSoul</span><span class="w">      </span><span class="p">:</span><span class="w"> </span><span class="err">(</span><span class="py">datastoreId</span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="p">,</span><span class="w"> </span><span class="nv">player</span><span class="p">:</span><span class="w"> </span><span class="py">Player</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nv">Soul</span><span class="err">?</span><span class="p">,</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="nv">playerExists</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="err">(</span><span class="py">player</span><span class="p">:</span><span class="w"> </span><span class="py">Player</span><span class="err">?</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nv">boolean</span><span class="err">?</span><span class="p">,</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="nv">getMetaData</span><span class="w">  </span><span class="p">:</span><span class="w"> </span><span class="err">()</span><span class="w"> </span><span class="err">-&gt;</span><span class="w"> </span><span class="py">SoulMetaData</span><span class="p">,</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="nv">deepCopy</span><span class="w">     </span><span class="p">:</span><span class="w"> </span><span class="err">(</span><span class="py">data</span><span class="p">:</span><span class="w"> </span><span class="py">any</span><span class="err">?</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nv">any</span><span class="p">,</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">    </span><span class="nv">output</span><span class="w">       </span><span class="p">:</span><span class="w"> </span><span class="err">(</span><span class="py">fn</span><span class="p">:</span><span class="w"> </span><span class="err">(</span><span class="py">any</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nv">any</span><span class="p">,</span><span class="w"> </span><span class="p">...</span><span class="nv">any</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span>
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="nv">resetData</span><span class="w">    </span><span class="p">:</span><span class="w"> </span><span class="err">(</span><span class="py">datastoreId</span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="p">,</span><span class="w"> </span><span class="nv">datastoreKey</span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span>
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">    </span><span class="nv">resetAllData</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="err">(</span><span class="py">datastoreId</span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span>
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>Pulling -&gt; Active -&gt; Ending -&gt; Ended
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>Pulling -&gt; Cancelled
 </code></pre></div>
+<p>Pulling is pending acquisition or initialization. Active permits gameplay and autosaves. Ending blocks gameplay while finalization runs. Ended and Cancelled are terminal; never reuse those objects. A confirmed acquisition during cancellation is released before settlement. An uncertain acquisition receives bounded recovery attempts, then relies on stale-lock expiry if the service remains unavailable.</p>
+<p><code>LoadData</code> and <code>SaveData</code> return <code>(boolean, string?)</code>. Terminal state alone does not prove a confirmed final save.</p>
+<p>Gameplay methods also check the last confirmed lease age. Prefer <code>getSoul</code> over testing the state string alone. An expired lease blocks gameplay immediately, then background finalization ends the session with <code>LeaseExpired</code> if its final write succeeds, or <code>OwnershipLost</code> if another session has taken over. No automatic player kick occurs.</p>
+<h2 id="soulstore"><code>SoulStore</code></h2>
+<p>The exported namespace type describes construction, session lookups, metadata/copy helpers, logging, and resets. See <a href="../soulstore/">Static Methods</a> and <a href="../soul/">Soul Methods</a> for signatures.</p>
 
 
 

@@ -12,6 +12,8 @@
         <link rel="prev" href="../listeners/">
       
       
+        <link rel="next" href="../edge-cases/">
+      
       
         
       
@@ -774,6 +776,118 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../edge-cases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Edge Cases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../load-testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Load Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../migrating/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 1.x
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How It Works
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -867,30 +981,32 @@
 </div>
 <hr />
 <h2 id="reset-a-single-player">Reset a Single Player</h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">resetData</span><span class="p">(</span><span class="s2">&quot;PlayerData&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">tostring</span><span class="p">(</span><span class="nv">player</span><span class="p">.</span><span class="py">UserId</span><span class="p">))</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">resetData</span><span class="p">(</span><span class="s2">&quot;PlayerData&quot;</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nb">tostring</span><span class="p">(</span><span class="nv">player</span><span class="p">.</span><span class="py">UserId</span><span class="p">))</span>
 </code></pre></div>
-<p>Calls <code>DataStoreService:RemoveAsync</code> on the given key. Retries once and warns on failure.</p>
+<p>The second argument is the DataStore scope; <code>nil</code> uses Roblox's default. Calls <code>RemoveAsync</code> on the given key, warns on failure, and returns whether it succeeded. Refused while this server has a session for that key.</p>
 <p><strong>When to use:</strong></p>
 <ul>
 <li>Clearing a QA tester's data between test runs.</li>
 <li>Admin command to reset a specific player's progress by request.</li>
 <li>Removing a known corrupted key.</li>
 </ul>
+<p>If the player has a session on another server, that session ends with <code>OwnershipLost</code> on its next save and does not bring the record back. <code>RemoveAsync</code> leaves old versions readable through version history for up to 30 days, so a right-to-erasure request should also go through <a href="https://create.roblox.com/docs/cloud-services/data-stores/best-practices">Roblox's automated process</a>.</p>
 <hr />
 <h2 id="reset-an-entire-datastore">Reset an Entire DataStore</h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">resetAllData</span><span class="p">(</span><span class="s2">&quot;PlayerData&quot;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">resetAllData</span><span class="p">(</span><span class="s2">&quot;PlayerData&quot;</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span><span class="p">)</span>
 </code></pre></div>
 <p>This function:</p>
 <ol>
+<li>Refuses if this server has a session in the DataStore. Outside Studio, it also refuses unless the third argument repeats the DataStore name.</li>
 <li>Logs a warning block and <strong>waits 10 seconds</strong> before starting.</li>
 <li>Pages through all keys using <code>ListKeysAsync</code>.</li>
-<li>Calls <code>RemoveAsync</code> on each key sequentially, retrying on failure.</li>
-<li>Logs progress per key and a completion message.</li>
+<li>Calls <code>RemoveAsync</code> on each key sequentially, retrying up to five times, and stops early if a key cannot be removed.</li>
+<li>Logs a completion message and returns whether every key was removed.</li>
 </ol>
 <p><strong>Requirements:</strong></p>
 <ul>
-<li>Run in <strong>Roblox Studio only</strong> — never on a live server.</li>
-<li>No active player sessions in the target DataStore.</li>
+<li>Run in <strong>Roblox Studio</strong> — not on a live server.</li>
+<li>No active player sessions in the target DataStore, on any server.</li>
 <li>Do not close Studio or interrupt the script during the operation.</li>
 </ul>
 <div class="admonition warning">
@@ -904,8 +1020,8 @@
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="kr">if</span><span class="w"> </span><span class="nv">RunService</span><span class="p">:</span><span class="nf">IsStudio</span><span class="p">()</span><span class="w"> </span><span class="kr">then</span>
 <a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="c1">-- Uncomment exactly one:</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="c1">-- SoulStore.resetData(&quot;PlayerData&quot;, &quot;123456789&quot;)</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="c1">-- SoulStore.resetAllData(&quot;PlayerData&quot;)</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="c1">-- SoulStore.resetData(&quot;PlayerData&quot;, nil, &quot;123456789&quot;)</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="c1">-- SoulStore.resetAllData(&quot;PlayerData&quot;, nil)</span>
 <a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="kr">end</span>
 </code></pre></div>
 <p>Run via the Studio command bar or a <code>Script</code> with <code>RunContext = Legacy</code>.</p>

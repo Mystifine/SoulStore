@@ -787,6 +787,118 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../edge-cases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Edge Cases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../load-testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Load Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../migrating/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 1.x
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How It Works
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -886,6 +998,8 @@
 
 <h1 id="change-listeners">Change Listeners</h1>
 <p><code>:OnDataChanged()</code> lets you react to mutations made through <code>:SetData()</code>.</p>
+<p>Pass <code>nil</code> as the path to observe the full data table. Listener paths distinguish string and number keys, including keys containing periods. Direct mutation of a <code>GetData</code> table does not trigger a notification.</p>
+<p>Both values are copies, taken before and after the write, so a listener can keep them or change them without affecting the saved data. To read the current data later, use <code>GetData</code> or keep what the next notification brings. A <code>nil</code> path listener's copies leave out <code>MetaData</code>. Copies are only made at levels something is listening to, and they cost more the larger the table is, so prefer listening to the narrowest path you need.</p>
 <hr />
 <h2 id="basic-usage">Basic Usage</h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">conn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">soul</span><span class="p">:</span><span class="nf">OnDataChanged</span><span class="p">({</span><span class="w"> </span><span class="s2">&quot;Coins&quot;</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="kr">function</span><span class="p">(</span><span class="nv">oldValue</span><span class="p">,</span><span class="w"> </span><span class="nv">newValue</span><span class="p">)</span>
@@ -929,7 +1043,7 @@
 </code></pre></div></p>
 <div class="admonition note">
 <p class="admonition-title">Separate Threads</p>
-<p>Listeners are called via <code>task.spawn</code> and run concurrently. They never block <code>:SetData()</code>.</p>
+<p>Listeners run through <code>task.spawn</code>; keep callbacks short. Notifications that have not started are skipped after disconnection or session end. All listener registrations are cleaned up when the soul settles.</p>
 </div>
 
 

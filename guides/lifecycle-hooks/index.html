@@ -704,7 +704,18 @@
   <a href="#execution-order" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Execution Order
+        Execution order
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-a-player-leaves" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When a player leaves
       
     </span>
   </a>
@@ -763,6 +774,118 @@
     
   
     Resetting Data
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../edge-cases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Edge Cases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../load-testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Load Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../migrating/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 1.x
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How It Works
   
 
     
@@ -835,7 +958,18 @@
   <a href="#execution-order" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Execution Order
+        Execution order
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-a-player-leaves" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When a player leaves
       
     </span>
   </a>
@@ -864,60 +998,60 @@
 
 <h1 id="lifecycle-hooks">Lifecycle Hooks</h1>
 <h2 id="setonload">SetOnLoad</h2>
-<p>Called after data is read from the DataStore, <strong>before</strong> <code>LoadState</code> becomes <code>"Loaded"</code>. The callback receives the raw data table <strong>by reference</strong> — mutations affect what the soul stores in memory.</p>
-<p><strong>Common use cases:</strong> reconcile new fields, clamp/validate values, migrate old data schemas.</p>
+<p>Register before <code>LoadData</code>. The callback receives acquired data before the soul becomes Active. Mutate its argument directly: <code>GetData</code>, <code>SetData</code>, and <code>Reconcile</code> are gameplay methods and remain unavailable during initialization.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">SetOnLoad</span><span class="p">(</span><span class="kr">function</span><span class="p">(</span><span class="nv">data</span><span class="p">)</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span><span class="c1">-- Back-fill new fields</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="kr">if</span><span class="w"> </span><span class="nv">data</span><span class="p">.</span><span class="py">PremiumCurrency</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="kr">then</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">        </span><span class="nv">data</span><span class="p">.</span><span class="py">PremiumCurrency</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span><span class="kr">end</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span><span class="c1">-- Clamp coin balance</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">    </span><span class="nv">data</span><span class="p">.</span><span class="py">Coins</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">math</span><span class="p">.</span><span class="nf">clamp</span><span class="p">(</span><span class="nv">data</span><span class="p">.</span><span class="py">Coins</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="nv">_000_000</span><span class="p">)</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">    </span><span class="c1">-- Schema migration example</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">    </span><span class="kr">if</span><span class="w"> </span><span class="nv">data</span><span class="p">.</span><span class="py">OldXP</span><span class="w"> </span><span class="o">~=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="kr">then</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">        </span><span class="nv">data</span><span class="p">.</span><span class="py">Stats</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">data</span><span class="p">.</span><span class="py">Stats</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="p">{}</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">        </span><span class="nv">data</span><span class="p">.</span><span class="py">Stats</span><span class="p">.</span><span class="py">XP</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">data</span><span class="p">.</span><span class="py">OldXP</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">        </span><span class="nv">data</span><span class="p">.</span><span class="py">OldXP</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">nil</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">    </span><span class="kr">end</span>
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="kr">end</span><span class="p">)</span>
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">LoadData</span><span class="p">()</span><span class="w"> </span><span class="c1">-- must be called AFTER SetOnLoad</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span><span class="kr">if</span><span class="w"> </span><span class="nv">data</span><span class="p">.</span><span class="py">PremiumCurrency</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="kr">then</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">        </span><span class="nv">data</span><span class="p">.</span><span class="py">PremiumCurrency</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="kr">end</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span><span class="nv">data</span><span class="p">.</span><span class="py">Coins</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">math</span><span class="p">.</span><span class="nf">clamp</span><span class="p">(</span><span class="nv">data</span><span class="p">.</span><span class="py">Coins</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="nv">_000_000</span><span class="p">)</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">    </span><span class="kr">if</span><span class="w"> </span><span class="nv">data</span><span class="p">.</span><span class="py">OldXP</span><span class="w"> </span><span class="o">~=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="kr">then</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">        </span><span class="nv">data</span><span class="p">.</span><span class="py">Stats</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">data</span><span class="p">.</span><span class="py">Stats</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="p">{}</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">        </span><span class="nv">data</span><span class="p">.</span><span class="py">Stats</span><span class="p">.</span><span class="py">XP</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">data</span><span class="p">.</span><span class="py">OldXP</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">        </span><span class="nv">data</span><span class="p">.</span><span class="py">OldXP</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">nil</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">    </span><span class="kr">end</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="kr">end</span><span class="p">)</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="kd">local</span><span class="w"> </span><span class="nv">loaded</span><span class="p">,</span><span class="w"> </span><span class="nv">reason</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">soul</span><span class="p">:</span><span class="nf">LoadData</span><span class="p">()</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="kr">if</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="nv">loaded</span><span class="w"> </span><span class="kr">then</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">    </span><span class="nb">warn</span><span class="p">(</span><span class="s2">&quot;Data initialization failed:&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">reason</span><span class="p">)</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">    </span><span class="kr">return</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="kr">end</span>
 </code></pre></div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Call <code>:SetOnLoad()</code> <strong>before</strong> <code>:LoadData()</code>.</p>
-</div>
-<hr />
+<p>A failed hook prevents Active gameplay. SoulStore releases the original acquired record rather than saving partial migration changes.</p>
 <h2 id="setonsave">SetOnSave</h2>
-<p>Called before each DataStore write. Receives a <strong>deep copy</strong> of <code>soul.Data</code>. Mutations affect only the snapshot — the live in-memory data is unchanged.</p>
-<p><strong>Common use cases:</strong> strip runtime fields, save computed aggregates, redact fields before storage.</p>
+<p>Receives a copy of the save payload. Its mutations affect that attempt only; live data is unchanged.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">SetOnSave</span><span class="p">(</span><span class="kr">function</span><span class="p">(</span><span class="nv">snapshot</span><span class="p">)</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">    </span><span class="c1">-- Strip fields only valid this session</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="nv">snapshot</span><span class="p">.</span><span class="py">ActiveBoostExpiry</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">nil</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="nv">snapshot</span><span class="p">.</span><span class="py">TempEventData</span><span class="w">     </span><span class="o">=</span><span class="w"> </span><span class="kc">nil</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span><span class="c1">-- Save aggregate playtime</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="nv">snapshot</span><span class="p">.</span><span class="py">TotalPlaytime</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="nv">snapshot</span><span class="p">.</span><span class="py">TotalPlaytime</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">        </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="nb">os.time</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nv">sessionStartTime</span><span class="p">)</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="kr">end</span><span class="p">)</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">    </span><span class="nv">snapshot</span><span class="p">.</span><span class="py">ActiveBoostExpiry</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">nil</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="nv">snapshot</span><span class="p">.</span><span class="py">TempEventData</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">nil</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="kr">end</span><span class="p">)</span>
 </code></pre></div>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>Mutations to the snapshot do <strong>not</strong> affect <code>soul.Data</code>. Update live data separately via <code>:SetData()</code> if needed.</p>
-</div>
-<hr />
-<h2 id="execution-order">Execution Order</h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>DataStore read
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    └── SetOnLoad  (mutates live data in place)
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>        └── LoadState = &quot;Loaded&quot;
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>            └── ... game logic ...
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>                └── SaveData triggered
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>                    └── deep copy of soul.Data created
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>                        └── SetOnSave  (mutates snapshot only)
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>                            └── DataStore write
+<p>A failed hook does not write its partially modified snapshot. A normal save reports the failure and the next autosave runs the hook again. A final save writes the session without the hook, so the rest of the player's progress is not lost. Transformations must be safe to run repeatedly. Keep purchases, rewards, network requests, and other external side effects outside hooks.</p>
+<p>Both hooks must complete without yielding and must leave <code>MetaData</code> to SoulStore. Do not call <code>task.wait</code>, asynchronous APIs, or other yielding operations from them.</p>
+<p>Saves and loads wait on the data store, so they cannot start from inside a hook, for any soul. <code>SaveData</code> and <code>LoadData</code> return <code>false, "CalledFromHook"</code> and warn, and the save that ran the hook carries on as usual. To end a session because of something a save hook found, do it after the hook with <code>task.defer</code>. One exception: <code>SaveData(true)</code> inside <code>SetOnLoad</code> cancels the load, which needs no waiting.</p>
+<h2 id="execution-order">Execution order</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Acquire and load record
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  -&gt; SetOnLoad(data)
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>  -&gt; Active
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>  -&gt; gameplay
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>  -&gt; copy save payload
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>  -&gt; SetOnSave(snapshot)
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>  -&gt; ownership-checked write
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>Ending
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>  -&gt; capture final payload
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>  -&gt; SetOnSave(snapshot)
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>  -&gt; wait for existing writer
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>  -&gt; final write and unlock together
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>  -&gt; terminal event and cleanup
 </code></pre></div>
+<p>The final hook runs as the session starts ending, before anything yields, so nothing that runs later can change the final save. During Ending, gameplay methods reject access. Previously returned tables remain live references for compatibility, but changing them after Ending begins does not alter the captured final payload.</p>
+<h2 id="when-a-player-leaves">When a player leaves</h2>
+<p>SoulStore starts the final save once every <code>PlayerRemoving</code> handler has run, in whatever order Roblox ran them. On Roblox the newest connection runs first, but nothing guarantees that, so do not rely on it. That leaves two rules for your own leave handlers:</p>
+<ul>
+<li><strong>Writing is safe.</strong> <code>SetData</code> and changes to the live data still work inside a leave handler, and they make the final save.</li>
+<li><strong>Do not clear what a save hook reads.</strong> The hook runs after your handler, so it would find nothing. Write it to the save in the handler instead, or clear it later with <code>task.delay</code> or when <code>SessionEndBindableEvent</code> fires.</li>
+</ul>
+<p>If your own code calls <code>SaveData(true)</code> inside a leave handler, the final save starts right there, and handlers Roblox runs after it can no longer write.</p>
 
 
 

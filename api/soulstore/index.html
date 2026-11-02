@@ -547,10 +547,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#soulstoregetsoul" class="md-nav__link">
+  <a href="#session-lookups" class="md-nav__link">
     <span class="md-ellipsis">
       
-        SoulStore.getSoul()
+        Session lookups
       
     </span>
   </a>
@@ -595,6 +595,17 @@
     <span class="md-ellipsis">
       
         SoulStore.output()
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#soulstoregetdatastore" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SoulStore.getDatastore()
       
     </span>
   </a>
@@ -831,6 +842,118 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/edge-cases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Edge Cases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/load-testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Load Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/migrating/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 1.x
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How It Works
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -876,10 +999,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#soulstoregetsoul" class="md-nav__link">
+  <a href="#session-lookups" class="md-nav__link">
     <span class="md-ellipsis">
       
-        SoulStore.getSoul()
+        Session lookups
       
     </span>
   </a>
@@ -931,6 +1054,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#soulstoregetdatastore" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SoulStore.getDatastore()
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#soulstoreresetdata" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -973,110 +1107,61 @@
 
 
 <h1 id="soulstore-static-methods">SoulStore Static Methods</h1>
-<p>Static methods on the <code>SoulStore</code> module table.</p>
-<hr />
 <h2 id="soulstorenew"><code>SoulStore.new()</code></h2>
-<p>Creates a new <code>Soul</code> object. Returns an existing cached soul if one is already loaded for this player and DataStore ID.</p>
-<p><strong>Signature</strong>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span><span class="nv">datastoreId</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="p">,</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="nv">player</span><span class="w">      </span><span class="p">:</span><span class="w"> </span><span class="py">Player</span><span class="p">,</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="nv">defaultData</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="err">{}</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="err">)</span><span class="w"> </span><span class="err">-&gt;</span><span class="w"> </span><span class="py">Soul</span><span class="err">?</span>
-</code></pre></div></p>
-<p><strong>Parameters</strong></p>
-<table>
-<thead>
-<tr>
-<th>Parameter</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>datastoreId</code></td>
-<td><code>string</code></td>
-<td>DataStore name to read from and write to.</td>
-</tr>
-<tr>
-<td><code>player</code></td>
-<td><code>Player</code></td>
-<td>The <code>Player</code> instance.</td>
-</tr>
-<tr>
-<td><code>defaultData</code></td>
-<td><code>{}</code></td>
-<td>Starting data template. Deep-copied into the soul.</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Returns</strong> <code>Soul?</code> — <code>nil</code> if <code>defaultData</code> is not a table or the player has left.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">soul</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="s2">&quot;PlayerData&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">player</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">Coins</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nv">Level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="p">})</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="nv">datastoreId</span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="p">,</span><span class="w"> </span><span class="nv">scope</span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="err">?</span><span class="p">,</span><span class="w"> </span><span class="nv">player</span><span class="p">:</span><span class="w"> </span><span class="py">Player</span><span class="p">,</span><span class="w"> </span><span class="nv">defaultData</span><span class="p">:</span><span class="w"> </span><span class="err">{})</span><span class="w"> </span><span class="err">-&gt;</span><span class="w"> </span><span class="py">Soul</span><span class="err">?</span>
 </code></pre></div>
-<hr />
-<h2 id="soulstoregetsoul"><code>SoulStore.getSoul()</code></h2>
-<p>Retrieves a cached soul by DataStore ID and player.</p>
-<p><strong>Signature</strong>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">getSoul</span><span class="p">(</span><span class="nv">datastoreId</span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="p">,</span><span class="w"> </span><span class="nv">player</span><span class="p">:</span><span class="w"> </span><span class="py">Player</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nv">Soul</span><span class="err">?</span>
-</code></pre></div></p>
-<p><strong>Returns</strong> <code>Soul?</code> — the cached soul, or <code>nil</code> if not found.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">soul</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">getSoul</span><span class="p">(</span><span class="s2">&quot;PlayerData&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">player</span><span class="p">)</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kr">if</span><span class="w"> </span><span class="nv">soul</span><span class="w"> </span><span class="kr">then</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="nv">soul</span><span class="p">:</span><span class="nf">SetData</span><span class="p">({</span><span class="w"> </span><span class="s2">&quot;Coins&quot;</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="mi">999</span><span class="p">)</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="kr">end</span>
+<p>Creates and caches a Pulling soul for the exact Player instance, DataStore, and scope. Repeated calls return its pending or active soul. A different Player instance with the same UserId gets a new object and GUID token. Ending or terminal objects are never reused.</p>
+<p><code>scope</code> selects the DataStore scope; <code>nil</code> uses Roblox's default, <code>"global"</code>. Each scope holds separate records and separate sessions.</p>
+<p>Returns <code>nil</code> for invalid arguments, a departed player, or shutdown, and for defaults that could not be saved: an array at the top, or anything <code>SetData</code> would refuse inside it. Defaults are copied and unavailable through gameplay methods until loading succeeds.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">soul</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="s2">&quot;PlayerData&quot;</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nv">player</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">Coins</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">})</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kr">if</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="nv">soul</span><span class="w"> </span><span class="kr">then</span><span class="w"> </span><span class="kr">return</span><span class="w"> </span><span class="kr">end</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="kr">if</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="nv">soul</span><span class="p">:</span><span class="nf">LoadData</span><span class="p">()</span><span class="w"> </span><span class="kr">then</span><span class="w"> </span><span class="kr">return</span><span class="w"> </span><span class="kr">end</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="nv">soul</span><span class="p">:</span><span class="nf">SetData</span><span class="p">({</span><span class="w"> </span><span class="s2">&quot;Coins&quot;</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="mi">100</span><span class="p">)</span>
 </code></pre></div>
-<hr />
+<h2 id="session-lookups">Session lookups</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">getSoul</span><span class="p">(</span><span class="nv">datastoreId</span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="p">,</span><span class="w"> </span><span class="nv">scope</span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="err">?</span><span class="p">,</span><span class="w"> </span><span class="nv">player</span><span class="p">:</span><span class="w"> </span><span class="py">Player</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nv">Soul</span><span class="err">?</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">getPendingSoul</span><span class="p">(</span><span class="nv">datastoreId</span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="p">,</span><span class="w"> </span><span class="nv">scope</span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="err">?</span><span class="p">,</span><span class="w"> </span><span class="nv">player</span><span class="p">:</span><span class="w"> </span><span class="py">Player</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nv">Soul</span><span class="err">?</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">getEndingSoul</span><span class="p">(</span><span class="nv">datastoreId</span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="p">,</span><span class="w"> </span><span class="nv">scope</span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="err">?</span><span class="p">,</span><span class="w"> </span><span class="nv">player</span><span class="p">:</span><span class="w"> </span><span class="py">Player</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nv">Soul</span><span class="err">?</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">hasActiveSession</span><span class="p">(</span><span class="nv">datastoreId</span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="p">,</span><span class="w"> </span><span class="nv">scope</span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="err">?</span><span class="p">,</span><span class="w"> </span><span class="nv">player</span><span class="p">:</span><span class="w"> </span><span class="py">Player</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nv">boolean</span>
+</code></pre></div>
+<p>All lookups use the exact Player instance, DataStore, and scope. <code>getSoul</code> returns only an Active soul whose confirmed lease has not expired; a session stops being Active as soon as its player leaves. Pending and ending helpers are for inspection; their data is unavailable for gameplay. Old-session cleanup cannot remove a new Player instance's soul.</p>
 <h2 id="soulstoreplayerexists"><code>SoulStore.playerExists()</code></h2>
-<p>Returns <code>true</code> if the player is currently in the game.</p>
-<p><strong>Signature</strong>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">playerExists</span><span class="p">(</span><span class="nv">player</span><span class="p">:</span><span class="w"> </span><span class="py">Player</span><span class="err">?</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nv">boolean</span><span class="err">?</span>
-</code></pre></div></p>
-<p>Checks <code>player and player:IsA("Player") and player.Parent == Players</code>.</p>
-<hr />
-<h2 id="soulstoregetmetadata"><code>SoulStore.getMetaData()</code></h2>
-<p>Returns a fresh <code>SoulMetaData</code> table for the current server and timestamp. Called internally during first-time data creation.</p>
-<p><strong>Signature</strong>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">getMetaData</span><span class="p">()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nv">SoulMetaData</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="c1">-- Returns: { Locked = true, SaveId = 0, LastUpdate = os.time(), SessionId = game.JobId }</span>
-</code></pre></div></p>
-<hr />
-<h2 id="soulstoredeepcopy"><code>SoulStore.deepCopy()</code></h2>
-<p>Recursively copies a table, or returns a primitive value unchanged.</p>
-<p><strong>Signature</strong>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">deepCopy</span><span class="p">(</span><span class="nv">data</span><span class="p">:</span><span class="w"> </span><span class="py">any</span><span class="err">?</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nv">any</span>
-</code></pre></div></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">copy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">deepCopy</span><span class="p">({</span><span class="w"> </span><span class="nv">Stats</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">Level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="nv">copy</span><span class="p">.</span><span class="py">Stats</span><span class="p">.</span><span class="py">Level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">99</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="c1">-- original table is unchanged</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">playerExists</span><span class="p">(</span><span class="nv">player</span><span class="p">:</span><span class="w"> </span><span class="py">Player</span><span class="err">?</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nv">boolean</span>
 </code></pre></div>
-<hr />
+<p>Returns whether the argument is a Player currently parented to <code>Players</code>.</p>
+<h2 id="soulstoregetmetadata"><code>SoulStore.getMetaData()</code></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">getMetaData</span><span class="p">(</span><span class="nv">sessionToken</span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="err">?</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nv">SoulMetaData</span>
+</code></pre></div>
+<p>Returns fresh metadata with <code>SaveId = 0</code> and the current timestamp. Without a token, returns <code>Locked = false, SessionId = ""</code>. With a token, returns locked metadata owned by that token. <code>SessionId</code> is opaque and does not identify a server JobId. Applications should not overwrite persisted metadata.</p>
+<h2 id="soulstoredeepcopy"><code>SoulStore.deepCopy()</code></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">deepCopy</span><span class="p">(</span><span class="nv">data</span><span class="p">:</span><span class="w"> </span><span class="py">any</span><span class="err">?</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nv">any</span>
+</code></pre></div>
+<p>Recursively copies tables, keeping each table's length and leaving metatables behind. Returns primitive values unchanged.</p>
 <h2 id="soulstoreoutput"><code>SoulStore.output()</code></h2>
-<p>Logs a message using the provided function, respecting <code>DEBUG_MODE</code> and <code>TRACE_BACK_MESSAGE</code>. No-ops if <code>DEBUG_MODE</code> is <code>false</code>.</p>
-<p><strong>Signature</strong>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">output</span><span class="p">(</span><span class="nv">outputFunction</span><span class="p">:</span><span class="w"> </span><span class="err">(</span><span class="py">any</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nv">any</span><span class="p">,</span><span class="w"> </span><span class="p">...:</span><span class="w"> </span><span class="nv">any</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kc">nil</span>
-</code></pre></div></p>
-<hr />
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">output</span><span class="p">(</span><span class="nv">outputFunction</span><span class="p">:</span><span class="w"> </span><span class="err">(</span><span class="py">any</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nv">any</span><span class="p">,</span><span class="w"> </span><span class="p">...:</span><span class="w"> </span><span class="nv">any</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kc">nil</span>
+</code></pre></div>
+<p>Writes diagnostics using the supplied function, respecting <code>DEBUG_MODE</code> and <code>TRACE_BACK_MESSAGE</code>. Persistence warnings remain visible when verbose debug output is disabled.</p>
+<h2 id="soulstoregetdatastore"><code>SoulStore.getDatastore()</code></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">getDatastore</span><span class="p">(</span><span class="nv">datastoreId</span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="p">,</span><span class="w"> </span><span class="nv">scope</span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="err">?</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nv">DataStore</span>
+</code></pre></div>
+<p>Returns the DataStore that SoulStore uses for that name and scope.</p>
 <h2 id="soulstoreresetdata"><code>SoulStore.resetData()</code></h2>
-<p>Removes a single player's DataStore key.</p>
-<p><strong>Signature</strong>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">resetData</span><span class="p">(</span><span class="nv">datastoreId</span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="p">,</span><span class="w"> </span><span class="nv">datastoreKey</span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kc">nil</span>
-</code></pre></div></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">resetData</span><span class="p">(</span><span class="nv">datastoreId</span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="p">,</span><span class="w"> </span><span class="nv">scope</span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="err">?</span><span class="p">,</span><span class="w"> </span><span class="nv">datastoreKey</span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nv">boolean</span>
+</code></pre></div>
+<p>Removes one DataStore key and returns whether it succeeded. Refused while this server has a session for that key. Sessions on other servers cannot be detected, so stop them first.</p>
 <div class="admonition danger">
 <p class="admonition-title">Data Loss</p>
-<p>Permanently deletes the player's saved data. Cannot be undone.</p>
+<p>Deletes the saved profile. See <a href="../../guides/reset-data/">Resetting Data</a>.</p>
 </div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">resetData</span><span class="p">(</span><span class="s2">&quot;PlayerData&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">tostring</span><span class="p">(</span><span class="nv">player</span><span class="p">.</span><span class="py">UserId</span><span class="p">))</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">resetData</span><span class="p">(</span><span class="s2">&quot;PlayerData&quot;</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nb">tostring</span><span class="p">(</span><span class="nv">player</span><span class="p">.</span><span class="py">UserId</span><span class="p">))</span>
 </code></pre></div>
-<hr />
 <h2 id="soulstoreresetalldata"><code>SoulStore.resetAllData()</code></h2>
-<p>Deletes <strong>every key</strong> in a DataStore. Waits 10 seconds, then pages through all keys and removes each one sequentially.</p>
-<p><strong>Signature</strong>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">resetAllData</span><span class="p">(</span><span class="nv">datastoreId</span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kc">nil</span>
-</code></pre></div></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nv">SoulStore</span><span class="p">.</span><span class="nf">resetAllData</span><span class="p">(</span><span class="nv">datastoreId</span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="p">,</span><span class="w"> </span><span class="nv">scope</span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="err">?</span><span class="p">,</span><span class="w"> </span><span class="nv">confirmation</span><span class="p">:</span><span class="w"> </span><span class="py">string</span><span class="err">?</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nv">boolean</span>
+</code></pre></div>
+<p>Waits 10 seconds, lists all keys, then removes them sequentially. Returns whether every key was removed. Refused while this server has a session in that DataStore. Outside Studio, <code>confirmation</code> must repeat <code>datastoreId</code> or nothing is deleted. Stop sessions on other servers first.</p>
 <div class="admonition danger">
-<p class="admonition-title">Irreversible — Extreme Caution</p>
-<p>Permanently wipes all player data. See the <a href="../../guides/reset-data/">Resetting Data guide</a> before using.</p>
+<p class="admonition-title">Data Loss</p>
+<p>Deletes every profile. See <a href="../../guides/reset-data/">Resetting Data</a>.</p>
 </div>
 
 

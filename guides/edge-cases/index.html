@@ -1,0 +1,1604 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../reset-data/">
+      
+      
+        <link rel="next" href="../load-testing/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Edge Cases - SoulStore Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#edge-cases" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="SoulStore Documentation" class="md-header__button md-logo" aria-label="SoulStore Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            SoulStore Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Edge Cases
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/mystifine/SoulStore" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Mystifine/SoulStore
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../getting-started/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Getting Started
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../api/types/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../session-locking/" class="md-tabs__link">
+          
+  
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="SoulStore Documentation" class="md-nav__button md-logo" aria-label="SoulStore Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    SoulStore Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/mystifine/SoulStore" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Mystifine/SoulStore
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Types
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/soul/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Soul Methods
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/soulstore/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SoulStore Methods
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../session-locking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Session Locking
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Operations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lifecycle-hooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lifecycle Hooks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../listeners/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Change Listeners
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reset-data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Resetting Data
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Edge Cases
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Edge Cases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#how-updateasync-behaves" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How UpdateAsync behaves
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-a-data-store-can-hold" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What a data store can hold
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Errors
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#more-than-one-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        More than one server
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#clocks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Clocks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#budgets-and-throttling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Budgets and throttling
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#shutdown" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shutdown
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#players-leaving" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Players leaving
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hooks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-only-your-game-can-do" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What only your game can do
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../load-testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Load Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../migrating/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 1.x
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How It Works
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#how-updateasync-behaves" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How UpdateAsync behaves
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-a-data-store-can-hold" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What a data store can hold
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Errors
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#more-than-one-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        More than one server
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#clocks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Clocks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#budgets-and-throttling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Budgets and throttling
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#shutdown" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shutdown
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#players-leaving" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Players leaving
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hooks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-only-your-game-can-do" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What only your game can do
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="edge-cases">Edge Cases</h1>
+<p>Roblox data stores fail in ways that are easy to miss. This page lists the known ones, what SoulStore does about each, and where the case comes from. Every row has a test in <code>tests/edgecases.luau</code>, <code>tests/lifecycle.luau</code> or <code>tests/consumers.luau</code>. The tests run against a simulated data store, and <code>tests/studio/DataStoreProbe.server.luau</code> checks its rules against real data stores. Where this page disagrees with older forum posts, the probe is why.</p>
+<h2 id="how-updateasync-behaves">How UpdateAsync behaves</h2>
+<table>
+<thead>
+<tr>
+<th>Case</th>
+<th>What SoulStore does</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Roblox runs the transform again on newer data if another server wrote first</td>
+<td>Clears its decision at the start of every run, so only the last run counts</td>
+<td><a href="https://create.roblox.com/docs/reference/engine/classes/GlobalDataStore">GlobalDataStore</a></td>
+</tr>
+<tr>
+<td>The transform returns nil, which cancels the write</td>
+<td>Records why inside the transform, because the call itself only returns nil</td>
+<td><a href="https://create.roblox.com/docs/reference/engine/classes/GlobalDataStore">GlobalDataStore</a></td>
+</tr>
+<tr>
+<td>The transform errors or yields, which raises nothing: Roblox prints <code>Transform function error</code>, returns nil and writes nothing</td>
+<td>Never yields inside a transform, and hooks run outside it. A call that returns nothing counts as a failed attempt. It never ends a session, and a load waits before trying again</td>
+<td>Probe, <a href="https://devforum.roblox.com/t/cant-use-teleportservicereserveserver-inside-updateasync-transform-function-error-callbacks-cannot-yield/1832335">DevForum</a></td>
+</tr>
+<tr>
+<td>The call errors although the write landed</td>
+<td>Treats the outcome as unknown. The next attempt reads the record and finds its own token</td>
+<td><a href="https://create.roblox.com/docs/cloud-services/data-stores/error-codes-and-limits">Limits</a></td>
+</tr>
+<tr>
+<td>User ids and key metadata are cleared unless the transform returns them</td>
+<td>Returns them on every write, including releases</td>
+<td><a href="https://create.roblox.com/docs/reference/engine/classes/GlobalDataStore">GlobalDataStore</a></td>
+</tr>
+<tr>
+<td>A negative test id from Studio is sent as a user id</td>
+<td>Only real user ids are sent</td>
+<td><a href="https://github.com/MadStudioRoblox/ProfileStore">ProfileStore</a></td>
+</tr>
+<tr>
+<td>A key already has the most user ids allowed, which would fail every save with error 512</td>
+<td>Leaves the list as it is and saves</td>
+<td><a href="https://create.roblox.com/docs/cloud-services/data-stores/error-codes-and-limits">Limits</a></td>
+</tr>
+<tr>
+<td><code>GetAsync</code> can answer from a cache up to four seconds old</td>
+<td>Never reads with <code>GetAsync</code>. Every read goes through <code>UpdateAsync</code></td>
+<td><a href="https://create.roblox.com/docs/cloud-services/data-stores/versioning-listing-and-caching">Caching</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="what-a-data-store-can-hold">What a data store can hold</h2>
+<table>
+<thead>
+<tr>
+<th>Case</th>
+<th>What SoulStore does</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Functions, Instances, Vector3 and other Roblox types, which fail the whole write with error 104</td>
+<td><code>SetData</code> refuses them. If one arrives through a direct table write, it is left out of the save and reported with its path</td>
+<td>Probe, <a href="https://madstudioroblox.github.io/ProfileStore/troubleshooting/">ProfileStore</a></td>
+</tr>
+<tr>
+<td>A boolean key, which silently cancels the whole write</td>
+<td>The same</td>
+<td>Probe</td>
+</tr>
+<tr>
+<td>A table or Instance used as a key, or an infinite key, which is stored under a meaningless name</td>
+<td>The same</td>
+<td>Probe</td>
+</tr>
+<tr>
+<td>A thread, which Roblox leaves out without a word</td>
+<td>The same</td>
+<td>Probe</td>
+</tr>
+<tr>
+<td>Strings and keys that are not valid UTF-8 (error 104)</td>
+<td>The same</td>
+<td>Probe, <a href="https://create.roblox.com/docs/reference/engine/classes/GlobalDataStore">GlobalDataStore</a></td>
+</tr>
+<tr>
+<td>Infinity</td>
+<td>An ordinary number: it saves and comes back. Older reports of it failing no longer hold</td>
+<td>Probe</td>
+</tr>
+<tr>
+<td>NaN</td>
+<td>Also comes back as it went in, so a save keeps it and warns. <code>SetData</code> refuses it, since it is always a bug and would replace a good value</td>
+<td>Probe</td>
+</tr>
+<tr>
+<td>Buffers</td>
+<td>Stored normally, and copied rather than shared, so a change after the final copy cannot reach the save</td>
+<td>Probe, <a href="https://devforum.roblox.com/t/introducing-luau-buffer-type-beta/2724894">DevForum</a></td>
+</tr>
+<tr>
+<td>A table with a length and string keys, which loses every string key. At the top of a save that means every named field and <code>MetaData</code>, which is how one stray <code>[1]</code> could wipe a whole save</td>
+<td><code>SetData</code> refuses it. Through a direct write, a save stores the number keys as strings so that nothing is lost, and warns once per session, naming the table</td>
+<td>Probe, <a href="https://devforum.roblox.com/t/saving-a-datastore-mixed-array-issue/351862">DevForum</a>, <a href="https://github.com/Kampfkarren/Roblox/blob/master/DataStore2/Verifier.lua">DataStore2</a></td>
+</tr>
+<tr>
+<td>An array with a gap, which Roblox cuts short if the gap is where its length stops, depending on how the table was built</td>
+<td>Copies keep each table's length, and a table that would still be cut is rebuilt at its full size, so it comes back with the same indexes</td>
+<td>Probe, <a href="https://devforum.roblox.com/t/data-store-stringifies-array-indexes-if-array-doesnt-start-from-index-1-and-behaves-incosistently-when-array-has-missing-indexes/3677213">DevForum</a></td>
+</tr>
+<tr>
+<td>Number keys with no length, which come back as strings</td>
+<td><code>SetData</code> refuses them. Through a direct write, written as they are, with a warning</td>
+<td>Probe, <a href="https://madstudioroblox.github.io/ProfileStore/troubleshooting/">ProfileStore</a></td>
+</tr>
+<tr>
+<td>Fractional keys, which come back as whole numbers in strings, so <code>1.1</code> and <code>1.9</code> land on the same key</td>
+<td><code>SetData</code> refuses them. Through a direct write, stored under their full text, so that neither is lost, with a warning</td>
+<td>Probe</td>
+</tr>
+<tr>
+<td>Defaults that could not be saved, or a record stored as an array, which could never hold <code>MetaData</code></td>
+<td><code>new</code> returns <code>nil</code>, or the load stops with <code>CorruptData</code> and the record is left as it is</td>
+<td>Probe</td>
+</tr>
+<tr>
+<td>A table that contains itself, which silently cancels the whole write</td>
+<td><code>SetData</code> refuses it. Through a direct write, normal saves report <code>InternalError</code>, and a final save frees the record with the last good save</td>
+<td>Probe, <a href="https://github.com/Kampfkarren/Roblox/blob/master/DataStore2/Verifier.lua">DataStore2</a></td>
+</tr>
+<tr>
+<td>A save over 4 MB (error 105)</td>
+<td>Reported as <code>SaveRejected</code>. The session continues and recovers once the save shrinks. A final save frees the record with the last good save</td>
+<td><a href="https://create.roblox.com/docs/cloud-services/data-stores/error-codes-and-limits">Limits</a></td>
+</tr>
+<tr>
+<td><code>soul.Data</code> replaced with something that is not a table</td>
+<td>Saves fail safely and the stored record is untouched</td>
+<td><a href="https://github.com/MadStudioRoblox/ProfileStore">ProfileStore</a></td>
+</tr>
+<tr>
+<td>A record that is not a save at all</td>
+<td><code>CorruptData</code>. It is left exactly as it is, never replaced with defaults</td>
+<td><a href="https://create.roblox.com/docs/cloud-services/data-stores/best-practices">Best practices</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="errors">Errors</h2>
+<table>
+<thead>
+<tr>
+<th>Case</th>
+<th>What SoulStore does</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>An error retrying cannot fix: 101-107, 401-403, 509, 511-513</td>
+<td>Stops at once, with no retries</td>
+<td><a href="https://create.roblox.com/docs/cloud-services/data-stores/error-codes-and-limits">Limits</a></td>
+</tr>
+<tr>
+<td>An unpublished place, or Studio without API access</td>
+<td>Stops at once with <code>DataStoreError</code> rather than retrying forever</td>
+<td><a href="https://github.com/MadStudioRoblox/ProfileStore">ProfileStore</a></td>
+</tr>
+<tr>
+<td><code>502: ... HTTP 403</code></td>
+<td>Stops in Studio, where it means no access. Retries on a live server</td>
+<td><a href="https://github.com/MadStudioRoblox/ProfileStore">ProfileStore</a></td>
+</tr>
+<tr>
+<td>Queue-full drops, 5xx errors, <code>KeyThrottled</code>, <code>ExperienceThrottled</code> and anything unrecognized</td>
+<td>Retries</td>
+<td><a href="https://create.roblox.com/docs/cloud-services/data-stores/error-codes-and-limits">Limits</a></td>
+</tr>
+<tr>
+<td>Retrying at the same moment as everyone else</td>
+<td>Delays grow by half up to <code>MAX_RETRY_INTERVAL</code>, and each wait varies by 20% either way</td>
+<td><a href="https://create.roblox.com/docs/cloud-services/data-stores/best-practices">Best practices</a></td>
+</tr>
+<tr>
+<td>A failed load being treated as a new player</td>
+<td>Defaults are only used when the store answers that no record exists</td>
+<td><a href="https://create.roblox.com/docs/cloud-services/data-stores/best-practices">Best practices</a></td>
+</tr>
+<tr>
+<td>A long outage at load</td>
+<td><code>LoadData</code> keeps waiting and writes nothing. A game can stop waiting by calling <code>SaveData(true)</code> or kicking the player</td>
+<td><a href="https://create.roblox.com/docs/cloud-services/data-stores/player-data-purchasing">Player data</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="more-than-one-server">More than one server</h2>
+<table>
+<thead>
+<tr>
+<th>Case</th>
+<th>What SoulStore does</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A teleport arrives before the old server has seen the player leave</td>
+<td>The new server waits, then loads the final save</td>
+<td><a href="https://create.roblox.com/docs/cloud-services/data-stores/player-data-purchasing">Player data</a></td>
+</tr>
+<tr>
+<td>A retry of an old write landing after a newer one</td>
+<td>Saves write only while the record names their own token</td>
+<td><a href="https://create.roblox.com/docs/cloud-services/data-stores/best-practices">Best practices</a></td>
+</tr>
+<tr>
+<td>A server crashes while holding a lock</td>
+<td>Another server takes over once the lock has not changed for <code>LOCK_TAKEOVER_TIME</code> (90 seconds), or for 45 seconds if it is older than <code>SESSION_LOCK_EXPIRY</code></td>
+<td><a href="https://github.com/MadStudioRoblox/ProfileStore">ProfileStore</a></td>
+</tr>
+<tr>
+<td>A healthy server loses its lock to a player waiting elsewhere</td>
+<td>Cannot happen: a live session's autosaves keep restarting the wait</td>
+<td></td>
+</tr>
+<tr>
+<td>An outage makes a live server look dead</td>
+<td>A failed request restarts the wait, so only an unchanged lock seen through working requests counts</td>
+<td></td>
+</tr>
+<tr>
+<td>A long outage ends, every lock now looks old, and a new server reaches a lock before its old owner lands its final save</td>
+<td>Even an old lock is watched for longer than a final save's slowest retry, so the final save gets there first and nothing is lost</td>
+<td><code>tests/load.luau</code></td>
+</tr>
+<tr>
+<td>A server cut off from the store is taken over, then comes back</td>
+<td>Its next write is refused. The session ends with <code>OwnershipLost</code> and writes nothing</td>
+<td><a href="https://create.roblox.com/docs/cloud-services/data-stores/player-data-purchasing">Player data</a></td>
+</tr>
+<tr>
+<td>A record is deleted during a session</td>
+<td>The session ends with <code>OwnershipLost</code> and does not bring the record back</td>
+<td><a href="https://github.com/nezuo/lapis">Lapis</a></td>
+</tr>
+<tr>
+<td>A teleport fails after the session was released</td>
+<td>The same Player can call <code>SoulStore.new</code> again and load normally</td>
+<td><a href="https://madstudioroblox.github.io/ProfileStore/troubleshooting/">ProfileStore</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="clocks">Clocks</h2>
+<p>Servers can disagree about the time, by up to five minutes <a href="https://devforum.roblox.com/t/ostime-returns-values-up-to-5-minutes-in-the-past-and-in-the-future/337324">according to one report</a>. In the one test that measured it, a Studio machine was 9.5 seconds off Roblox's own timestamps.</p>
+<table>
+<thead>
+<tr>
+<th>Case</th>
+<th>What SoulStore does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A writer's clock is slow, so its live lock looks old</td>
+<td>Lock age comes from Roblox's <code>UpdatedTime</code>, not the writer's clock</td>
+</tr>
+<tr>
+<td>A reader's clock is slow, so a dead lock never looks old</td>
+<td>The takeover wait uses only the reader's own <code>os.clock</code></td>
+</tr>
+<tr>
+<td>A server's clock jumps forward or back</td>
+<td>Leases and autosaves use <code>os.clock</code>, so neither ends sessions nor stops saving</td>
+</tr>
+<tr>
+<td>A reader's clock is far ahead</td>
+<td>It reads a live lock as old, which only shortens its watch to 45 seconds, and a live session writes every 30. It would take that clock and an owner's failed autosave at the same moment to take a live lock. The old session's next write would be refused, so nothing is overwritten, but what it had not saved yet would be lost</td>
+</tr>
+</tbody>
+</table>
+<h2 id="budgets-and-throttling">Budgets and throttling</h2>
+<table>
+<thead>
+<tr>
+<th>Case</th>
+<th>What SoulStore does</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The request budget runs out</td>
+<td>Autosaves wait for budget, and only as many start as it allows. Whoever has waited longest goes first, so nobody is left behind while others save again</td>
+<td><a href="https://create.roblox.com/docs/cloud-services/data-stores/error-codes-and-limits">Limits</a>, outside review</td>
+</tr>
+<tr>
+<td>Saves bunching up after a stall, which would copy every player's data in one frame</td>
+<td>No more than twice the steady rate starts in one second</td>
+<td></td>
+</tr>
+<tr>
+<td>The request queue fills, which drops requests with error 304</td>
+<td>Final saves are never held back, and a dropped one retries</td>
+<td><a href="https://create.roblox.com/docs/cloud-services/data-stores/error-codes-and-limits">Limits</a></td>
+</tr>
+<tr>
+<td>A save too large to write every 30 seconds, since each key is limited to 4 MB per minute</td>
+<td>Throttled writes fail like any other. The session stays active and the final save retries</td>
+<td><a href="https://create.roblox.com/docs/cloud-services/data-stores/error-codes-and-limits">Limits</a></td>
+</tr>
+<tr>
+<td>Many players load at once</td>
+<td>Autosaves are spread over the whole interval, as Roblox's own sample does, and stay spread</td>
+<td><a href="https://create.roblox.com/docs/cloud-services/data-stores/best-practices">Best practices</a>, <a href="https://create.roblox.com/docs/cloud-services/data-stores/player-data-purchasing">Player data</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="shutdown">Shutdown</h2>
+<table>
+<thead>
+<tr>
+<th>Case</th>
+<th>What SoulStore does</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Players:GetPlayers()</code> is already empty at shutdown</td>
+<td>Works from its own list of sessions</td>
+<td><a href="https://devforum.roblox.com/t/can-this-happen-for-updateasync/4818300">DevForum</a></td>
+</tr>
+<tr>
+<td>A player leaves during shutdown</td>
+<td>One write, not two</td>
+<td><a href="https://devforum.roblox.com/t/can-this-happen-for-updateasync/4818300">DevForum</a></td>
+</tr>
+<tr>
+<td>A request never returns</td>
+<td>Shutdown still ends within <code>SHUTDOWN_TIMEOUT</code>. The lock recovers later</td>
+<td><a href="https://create.roblox.com/docs/reference/engine/classes/DataModel">BindToClose</a></td>
+</tr>
+<tr>
+<td>Many players on a slow store</td>
+<td>Saves run side by side</td>
+<td><a href="https://create.roblox.com/docs/reference/engine/classes/DataModel">BindToClose</a></td>
+</tr>
+<tr>
+<td>A change arrives after shutdown began</td>
+<td><code>SetData</code> returns nil rather than losing it silently</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h2 id="players-leaving">Players leaving</h2>
+<table>
+<thead>
+<tr>
+<th>Case</th>
+<th>What SoulStore does</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Roblox runs <code>PlayerRemoving</code> handlers newest first, so a handler connected after SoulStore's runs before it</td>
+<td>The final save starts once every handler has run, so what any of them writes is saved</td>
+<td>Probe</td>
+</tr>
+<tr>
+<td>A leave handler clears state a save hook reads</td>
+<td>The hook finds it gone. See <a href="../lifecycle-hooks/#when-a-player-leaves">the rules for leave handlers</a></td>
+<td>Probe</td>
+</tr>
+<tr>
+<td><code>player.Parent</code> is nil by the time deferred work runs</td>
+<td>A session does not depend on it, so the final hook can still read the session</td>
+<td>Probe</td>
+</tr>
+</tbody>
+</table>
+<h2 id="hooks">Hooks</h2>
+<table>
+<thead>
+<tr>
+<th>Case</th>
+<th>What SoulStore does</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A hook errors or yields</td>
+<td>That copy is not written. A final save writes the session without the hook</td>
+<td></td>
+</tr>
+<tr>
+<td>A hook calls <code>SaveData</code> or <code>LoadData</code>, on this soul or another, which would wait inside a thread that is cancelled for waiting, and strand the session in <code>Ending</code> with its lock held</td>
+<td>Refused with <code>CalledFromHook</code>, and the save that ran the hook carries on. <code>SaveData(true)</code> in <code>SetOnLoad</code> still cancels the load, since that needs no waiting</td>
+<td>Outside review</td>
+</tr>
+</tbody>
+</table>
+<h2 id="what-only-your-game-can-do">What only your game can do</h2>
+<p><strong>Check <code>LoadData</code>.</strong> A load can fail for good, so don't start gameplay without checking it.</p>
+<p><strong>React when a session ends during play.</strong> SoulStore stops accepting changes but does not kick the player. <a href="../migrating/">Migrating</a> has an example.</p>
+<p><strong>Record purchases in the save.</strong> Follow <a href="https://create.roblox.com/docs/cloud-services/data-stores/player-data-purchasing">Roblox's steps</a>: check the purchase id, grant, record the id, then return <code>PurchaseGranted</code> only if <code>SaveData()</code> returned <code>true</code>. If the save failed, the retry finds the id and saves again without granting twice.</p>
+<p><strong>Save before a teleport.</strong> Call <code>SaveData(true)</code> and wait for it, so the destination does not have to wait for the lock. If the teleport fails, start a new session.</p>
+<p><strong>Save both sides of a trade.</strong> Session locking stops a player loading old data, but one side of a trade can still land without the other. Call <code>SaveData()</code> on both, and do not treat the trade as final unless both return <code>true</code>.</p>
+<p><strong>Keep Studio away from live data.</strong> With API access on, Studio writes to real keys. Use a different store name in Studio, as your games already do.</p>
+<p><strong>Take a snapshot before an update that changes how data is saved.</strong> Version history only keeps the first write of each UTC hour, for 30 days. <a href="https://create.roblox.com/docs/cloud-services/data-stores/versioning-listing-and-caching">Snapshots</a> protect what was written just before the update.</p>
+<p><strong>Set up right-to-erasure.</strong> SoulStore tags each key with the player's user id, and <code>RemoveAsync</code> leaves old versions for up to 30 days. Roblox's <a href="https://create.roblox.com/docs/cloud-services/data-stores/best-practices">automated right-to-be-forgotten</a> handles keys that follow a fixed pattern.</p>
+<p><strong>Keep saves well under 2 MB.</strong> At the default autosave interval, larger saves are throttled by the per-key limit on some autosaves.</p>
+<p><strong>Numbers above 2^53 lose precision</strong>, as they do everywhere in Luau. Store larger values as strings.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
