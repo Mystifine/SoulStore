@@ -1279,7 +1279,7 @@ end)
 test("failures still reach the output with DEBUG_MODE off", function()
 	local world = newWorld()
 	local soul = world:active("Profiles", world:player(71), { Coins = 1 })
-	equal(world.config.DEBUG_MODE, false)
+	world.config.DEBUG_MODE = false
 	table.clear(world.logs)
 	world.stores.Profiles.beforeRead = function()
 		error("503: outage")

@@ -583,6 +583,7 @@ test("NaN is saved and reported, because it comes back as it went in, and SetDat
 	local record = world.stores.Profiles.data["121"]
 	expect(record.Score ~= record.Score, "Removing it could break code that expects the field")
 	expect(world:logged("Score"), "It is reported with its path")
+	world.config.DEBUG_MODE = false -- so that only warnings are counted
 	local warnings = #world.logs
 	equal(save(world, soul), true)
 	equal(#world.logs, warnings, "Once per session")
@@ -687,6 +688,7 @@ test("tables that would not load back the same are reported once, with their pat
 		soul.Data.Outer = { Risky = shape }
 		equal(save(world, soul), true, name)
 		expect(world:logged("Outer.Risky"), name .. " is reported with its path")
+		world.config.DEBUG_MODE = false -- so that only warnings are counted
 		local warnings = #world.logs
 		equal(save(world, soul), true, name)
 		equal(#world.logs, warnings, name .. " is reported only once per session")

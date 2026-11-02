@@ -6,7 +6,7 @@ Require SoulStore only from server code.
 
 For Rojo, clone the repository, run `rojo build -o SoulStore.rbxlx`, and copy the SoulStore module from ServerScriptService into your project.
 
-For Wally, add `soulstore = "mystifine/soulstore@2.0.1"` to your project's server dependencies, then run `wally install`. If your game already uses 1.x, read [Migrating from 1.x](guides/migrating.md) first, because some arguments changed.
+For Wally, add `soulstore = "mystifine/soulstore@2.0.2"` to your project's server dependencies, then run `wally install`. If your game already uses 1.x, read [Migrating from 1.x](guides/migrating.md) first, because some arguments changed.
 
 ```lua
 local SoulStore = require(path.to.SoulStore)
@@ -122,7 +122,7 @@ Edit `src/Config.luau` before deployment.
 
 | Setting | Default | Purpose |
 |---|---|---|
-| `DEBUG_MODE` | `false` | Verbose diagnostic output. Persistence warnings remain visible. |
+| `DEBUG_MODE` | `true` | Routine output, such as each load and save. Persistence warnings always show, even when this is off. |
 | `TRACE_BACK_MESSAGE` | `false` | Append stack traces to diagnostics. |
 | `LOAD_ATTEMPT_INTERVAL` | `6` seconds | Delay between looks at a lock that a load is waiting for. |
 | `RETRY_INTERVAL` | `2` seconds | First delay before a failed load or final save retries. |

@@ -1,7 +1,7 @@
 local Config = {}
 
 -- Routine messages only. Warnings about failed saves and loads always reach the output.
-Config.DEBUG_MODE = false
+Config.DEBUG_MODE = true
 Config.TRACE_BACK_MESSAGE = false
 
 Config.LOAD_ATTEMPT_INTERVAL = 6 -- seconds between looks at a lock that a load is waiting for
