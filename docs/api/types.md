@@ -1,76 +1,59 @@
 # Types
 
-SoulStore exports three Luau types for use in typed scripts.
-
----
-
 ## `SoulMetaData`
 
-Internal metadata stored alongside every player's data table. Managed automatically — do not write to these fields manually.
+Metadata persisted beside player data and managed by SoulStore:
 
 ```lua
 export type SoulMetaData = {
-    Locked     : boolean, -- true while a server owns the session
-    SaveId     : number,  -- incremented on every successful write
-    LastUpdate : number,  -- os.time() of the last DataStore write
-    SessionId  : string,  -- game.JobId of the owning server; "" when unlocked
+    Locked: boolean,
+    SaveId: number,
+    LastUpdate: number,
+    SessionId: string,
 }
 ```
 
-| Field | Type | Description |
-|---|---|---|
-| `Locked` | `boolean` | Whether the key is owned by an active server. |
-| `SaveId` | `number` | Monotonic save counter. Useful for auditing. |
-| `LastUpdate` | `number` | Timestamp of the last write; used to calculate lock expiry. |
-| `SessionId` | `string` | `game.JobId` of the owner. Empty string when unlocked. |
+| Field | Meaning |
+|---|---|
+| `Locked` | A session owns the key. |
+| `SaveId` | Save counter derived from the persisted record when saving. |
+| `LastUpdate` | Unix timestamp refreshed by acquisition and saves; used for crash recovery. |
+| `SessionId` | Opaque GUID session token, or `""` when unlocked. |
 
-!!! note
-    `MetaData` lives at `soul.Data.MetaData` and is persisted alongside player data.
-
----
+`MetaData` is reserved. `game.JobId` identifies a server, not its individual player sessions.
 
 ## `Soul`
 
-Represents a single player's live data session.
+A soul represents one DataStore session for one exact Player instance. Do not reassign identity properties.
 
-```lua
-export type Soul = {
-    DatastoreId             : string,
-    Player                  : Player,
-    Data                    : { MetaData : SoulMetaData },
-    LastAutoSave            : number,
-    LoadState               : string, -- "Idle" | "Loading" | "Loaded"
-    SaveState               : string, -- "Idle" | "Saving" | "SessionEnding"
-    SessionEndBindableEvent : BindableEvent,
-}
+| Property | Type | Meaning |
+|---|---|---|
+| `DatastoreId` | `string` | DataStore name. |
+| `Scope` | `string` | DataStore scope; `"global"` unless one was given. |
+| `DatastoreKey` | `string` | Persisted key, the UserId as a string. |
+| `Player` | `Player` | Exact Player instance. |
+| `UserId` | `number` | Immutable UserId used for the persisted key. |
+| `SessionToken` | `string` | Immutable GUID identifying this session. |
+| `Data` | `table` | Live data; use only while Active. |
+| `LastAutoSave` | `number` | When the last save started, in `os.clock` time. |
+| `IsSaving` | `boolean` | A save is in flight. |
+| `SessionState` | `string` | Authoritative lifecycle state. |
+| `EndReason` | `string?` | Reason the session settled. |
+| `LoadState` | `string` | Compatibility load status; use SessionState for readiness. |
+| `SaveState` | `string` | Compatibility save status. |
+| `SessionEndBindableEvent` | `BindableEvent` | Fires once with `(state, reason)`, then is destroyed. |
+
+```text
+Pulling -> Active -> Ending -> Ended
+Pulling -> Cancelled
 ```
 
-| Property | Type | Description |
-|---|---|---|
-| `DatastoreId` | `string` | DataStore name this soul reads/writes. |
-| `Player` | `Player` | The associated `Player` instance. |
-| `Data` | `table` | Live data table. Mutated by `:SetData()`. |
-| `LastAutoSave` | `number` | Timestamp of the last auto-save. |
-| `LoadState` | `string` | Current load phase. |
-| `SaveState` | `string` | Current save phase. |
-| `SessionEndBindableEvent` | `BindableEvent` | Fires once after a successful session-ending save. |
+Pulling is pending acquisition or initialization. Active permits gameplay and autosaves. Ending blocks gameplay while finalization runs. Ended and Cancelled are terminal; never reuse those objects. A confirmed acquisition during cancellation is released before settlement. An uncertain acquisition receives bounded recovery attempts, then relies on stale-lock expiry if the service remains unavailable.
 
----
+`LoadData` and `SaveData` return `(boolean, string?)`. Terminal state alone does not prove a confirmed final save.
+
+Gameplay methods also check the last confirmed lease age. Prefer `getSoul` over testing the state string alone. An expired lease blocks gameplay immediately, then background finalization ends the session with `LeaseExpired` if its final write succeeds, or `OwnershipLost` if another session has taken over. No automatic player kick occurs.
 
 ## `SoulStore`
 
-The module table, usable as a static namespace.
-
-```lua
-export type SoulStore = {
-    ClassName    : string,
-    new          : (datastoreId: string, player: Player, defaultData: {}) -> Soul?,
-    getSoul      : (datastoreId: string, player: Player) -> Soul?,
-    playerExists : (player: Player?) -> boolean?,
-    getMetaData  : () -> SoulMetaData,
-    deepCopy     : (data: any?) -> any,
-    output       : (fn: (any) -> any, ...any) -> nil,
-    resetData    : (datastoreId: string, datastoreKey: string) -> nil,
-    resetAllData : (datastoreId: string) -> nil,
-}
-```
+The exported namespace type describes construction, session lookups, metadata/copy helpers, logging, and resets. See [Static Methods](soulstore.md) and [Soul Methods](soul.md) for signatures.

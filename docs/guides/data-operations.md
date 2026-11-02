@@ -1,72 +1,115 @@
 # Data Operations
 
-## Path Arrays
+## Readiness
 
-All data access uses **path arrays** — ordered lists of keys describing how to traverse `soul.Data`.
-
-```lua
--- Given:
--- { Stats = { Level = 5, XP = 120 }, Inventory = { "Sword", "Shield" } }
-
-soul:GetData({ "Stats", "Level" }) --> 5
-soul:GetData({ "Stats" })          --> { Level = 5, XP = 120 }
-soul:GetData({ "Inventory", 1 })   --> "Sword"
-soul:GetData()                     --> full data table
-```
-
-## Reading Data
+Only Active souls accept gameplay operations. Check the load result before making data available to the rest of the game:
 
 ```lua
-local coins = soul:GetData({ "Coins" })
-local level = soul:GetData({ "Stats", "Level" })
-local all   = soul:GetData()
+local soul = SoulStore.new("PlayerData", nil, player, DEFAULT_DATA)
+if not soul then return end
+local loaded, reason = soul:LoadData()
+if not loaded then return end
+soul:Reconcile(DEFAULT_DATA)
 ```
 
-Returns `nil` and logs a warning if any key in the path doesn't exist.
+For later lookups, use `SoulStore.getSoul("PlayerData", nil, player)`. It returns only a usable Active soul for that exact Player instance, including a check of the confirmed lease age. A state string alone does not prove a session is still usable.
 
-## Writing Data
+## Path arrays
+
+Paths are ordered string or number keys:
+
+```lua
+soul:GetData({ "Stats", "Level" })
+soul:GetData({ "Inventory", 1 })
+soul:GetData() -- full live table
+```
+
+Missing leaves return `nil`. Traversal through a missing or non-table intermediate value fails safely. Gameplay access outside Active returns `nil`.
+
+## Writing data
 
 ```lua
 soul:SetData({ "Coins" }, 500)
-soul:SetData({ "Stats", "Level" }, level + 1)
-soul:SetData({ "Inventory" }, { "Sword", "Shield", "Potion" })
+soul:SetData({ "Stats", "Level" }, 10)
+soul:SetData({ "Inventory" }, { "Sword", "Shield" })
 ```
 
-!!! warning "Intermediate Keys Must Exist"
-    `:SetData()` traverses but does not create intermediate tables. Define all nested structures in `DEFAULT_DATA`.
+Intermediate tables must already exist. `MetaData` is reserved and must not be changed by application code. `SetData` returns `nil` and warns for a value a DataStore cannot hold, or a write a DataStore would change or lose, so check its result when granting something of value.
 
-## Mutating Sub-Tables
+## What can be saved
 
-`:GetData()` returns a **reference** to the live table. Mutate and write back to trigger listeners:
+Strings, numbers, booleans, buffers, and tables of those. Infinity saves and comes back like any other number, and so does NaN, though `SetData` refuses NaN and a save warns about it.
+
+A table is either a dictionary, with string keys, or an array, with number keys from 1. The top of a save is always a dictionary, because `MetaData` lives there.
+
+Roblox goes by a table's length, `#t`. A table with a length is stored as an array that stops there, and every other key is lost, without an error. A table with no length is stored as a dictionary, with its number keys turned into strings. On its own, that can wipe out data:
 
 ```lua
-local inv = soul:GetData({ "Inventory" })
-table.insert(inv, "New Item")
-soul:SetData({ "Inventory" }, inv) -- triggers listeners
+-- On Roblox this comes back as { "Sword" }. Coins is gone, and so would be MetaData.
+{ [1] = "Sword", Coins = 50 }
 ```
 
-## Reconcile
+SoulStore protects against this in two places.
 
-Merges a source table into `soul.Data`, adding only keys that are missing:
+**`SetData` refuses what would not come back the same**, and returns `nil`:
 
 ```lua
-local DEFAULTS = {
-    Coins           = 0,
-    Level           = 1,
-    PremiumCurrency = 0, -- newly added field
-}
+soul:SetData({ 1 }, "Sword")                  -- a number key at the top of the save
+soul:SetData({ "Inventory", 1 }, "Sword")     -- a number key on a dictionary
+soul:SetData({ "Items", "Count" }, 3)         -- a string key on an array
+soul:SetData({ "Levels", 1001 }, true)        -- a number key that does not start an array
+soul:SetData({ "Items", 1.5 }, "Sword")       -- a fraction, zero, or a negative number
+soul:SetData({ "Loadout" }, { "Sword", Name = "Main" })    -- a value with the same problems
 
-soul:SetOnLoad(function()
-    soul:Reconcile(DEFAULTS) -- adds PremiumCurrency to old saves only
-end)
+-- Fine
+soul:SetData({ "Levels", "1001" }, true)      -- number-like ids as strings
+soul:SetData({ "Items", #items + 1 }, "Bow")  -- adding to an array
+soul:SetData({ "Items", 2 }, nil)             -- removing from an array, even from the middle
 ```
 
-## Checking Load State
+**A save loses nothing, whatever it finds.** The live table from `GetData` has no such check, and neither does a save hook's copy, so the save handles what gets through:
 
-Verify `soul.LoadState` before operating on data outside of the initial `PlayerAdded` flow:
+| In the table | What is written | Comes back |
+|---|---|---|
+| An array with gaps, such as `{ "Sword", nil, "Bow" }` | The array, with its gaps | The same, with no warning |
+| Number keys alongside string keys, at any depth | Everything, with the number keys as strings | Under string keys, so `t[1]` becomes `t["1"]` |
+| Number keys too sparse to be an array, such as `{ [1] = "a", [2000] = "b" }` | The same | Under string keys |
+| Fractions, zero and negative numbers as keys | The same | Under string keys |
+
+Whatever will not come back the same gets a warning once per session, naming the table. Fix the code that wrote it: nothing was lost, but your game will not find it where it put it. See [Edge Cases](edge-cases.md) for more.
+
+## Table references
+
+`GetData` returns live table references for compatibility. Copy a table before changing it if listeners need a reliable old value:
 
 ```lua
-if soul.LoadState == "Loaded" then
-    soul:SetData({ "Coins" }, soul:GetData({ "Coins" }) + 10)
+local inventory = SoulStore.deepCopy(soul:GetData({ "Inventory" }))
+table.insert(inventory, "New Item")
+soul:SetData({ "Inventory" }, inventory)
+```
+
+Direct table mutation bypasses listeners and state guards. Do not retain data references across a yielding operation without rechecking session readiness. The final snapshot is captured when Ending begins, so later reference mutations do not change the final save.
+
+## Reconciliation
+
+`Reconcile` recursively fills missing fields on Active data, copying inserted tables and preserving existing values:
+
+```lua
+if soul:LoadData() then
+    soul:Reconcile({
+        Coins = 0,
+        Level = 1,
+        PremiumCurrency = 0,
+    })
 end
 ```
+
+Only string keys are filled. An array the save already has is left as it is, even an empty one, so an entry the player no longer has does not come back and one entry never picks up another's fields. A missing array is copied whole:
+
+```lua
+-- Saved: { Slots = { 9 }, Sold = {} }
+soul:Reconcile({ Slots = { 1, 2, 3 }, Sold = { "Starter" }, Items = { "Starter" } })
+-- Result: { Slots = { 9 }, Sold = {}, Items = { "Starter" } }
+```
+
+Inside `SetOnLoad`, migrate the callback's data argument directly. The soul is still Pulling and gameplay methods are unavailable.

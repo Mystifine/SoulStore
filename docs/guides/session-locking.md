@@ -1,56 +1,71 @@
 # Session Locking
 
-## The Problem
+## Identity and lifecycle
 
-Roblox does not guarantee only one server has a player loaded at a time. During teleports, crashes, or shutdown races, two servers can briefly both believe they own the same player. If both write to the same DataStore key, the last write wins — potentially overwriting progress.
+SoulStore separates three identities:
 
-## How SoulStore Handles It
+| Identity | Use |
+|---|---|
+| UserId | Persisted DataStore key, encoded as a string. |
+| Exact Player instance | Live object lookup within a DataStore and scope. |
+| GUID SessionToken | Ownership stored in `MetaData.SessionId`. |
 
-On load, SoulStore uses `UpdateAsync` to atomically claim ownership of the key:
+Each rejoin creates a fresh Player instance, soul, and token. An old soul can finish saving while a new soul waits for its lock. The old object is never handed to the new Player.
 
-```lua
-readData.MetaData.Locked     = true
-readData.MetaData.SessionId  = game.JobId
-readData.MetaData.LastUpdate = os.time()
+```text
+Pulling -> Active -> Ending -> Ended
+Pulling -> Cancelled
 ```
 
-A second server seeing `Locked = true` with a foreign `SessionId` enters a retry loop and logs the time remaining until the lock expires. It cannot write to the key until it acquires the lock.
+Pulling souls are cached to prevent duplicate acquisitions, but are unavailable through `getSoul` and gameplay methods. Concurrent `LoadData` calls share one acquisition. Gameplay starts only when `LoadData` returns `true`.
 
-On a clean session end, the lock is released:
+## Acquisition and writes
 
-```lua
-MetaData.Locked    = false
-MetaData.SessionId = ""
-```
+`UpdateAsync` atomically loads the record and claims its lock. A foreign live lock causes retry while the player remains present. An already-owned token is recognized when retrying after an uncertain network response.
 
-## Lock Expiry (Crash Recovery)
+Every save verifies that the persisted record names its exact token. A missing or foreign owner cancels the write, whether the record is locked, released, or expired: those only decide whether a new session may claim it. Returning from `UpdateAsync` without an API error does not by itself mean the save was accepted.
 
-If a server crashes without releasing its lock, the lock expires after `SESSION_LOCK_AUTO_RELEASE` seconds. The waiting server calculates:
+Normal saves make one attempt and report the result, because the next autosave carries newer data anyway. Only the final save retries.
 
-```
-timeRemaining = SESSION_LOCK_AUTO_RELEASE - (os.time() - MetaData.LastUpdate)
-```
+Ending immediately blocks gameplay access and captures the final snapshot. Writers are serialized, so the final save waits behind an in-flight regular save. The same `UpdateAsync` writes the final data and clears `Locked` and `SessionId`. The lock is never released in advance of that write.
 
-Because `LastUpdate` is refreshed on every auto-save, frequent saves reduce how long a second server must wait after a crash.
+Departure during pulling cancels loading. If acquisition commits while cancellation is happening, SoulStore releases the acquired record without making it Active. PlayerRemoving targets the exact departing Player instance.
 
-## Tuning Recommendations
+If the acquisition response failed and ownership is uncertain, cancellation probes only for its own token and releases it without acquiring a free record or refreshing the lock. Recovery retries for up to `ACQUISITION_RECOVERY_TIMEOUT` (30 seconds by default). If ownership cannot be resolved, the soul settles with `AcquisitionUncertain` and any remaining lock expires naturally. An already-submitted network request cannot be forcibly interrupted.
 
-| Use Case | `AUTO_SAVE_INTERVAL` | `SESSION_LOCK_AUTO_RELEASE` |
+## Crash recovery
+
+A load only ever takes a lock after watching it not change, on the load's own clock. How long depends on how old the lock is:
+
+| Lock | Watched for | Why |
 |---|---|---|
-| Casual game | 60s | 120s |
-| RPG / economy | 60s | 300s |
-| Competitive / ranked | 60s | 600s |
+| Written recently | `LOCK_TAKEOVER_TIME` (90 seconds, three autosaves) | A live session writes every autosave, so this much silence means its server crashed or cannot reach the data store. |
+| Older than `SESSION_LOCK_EXPIRY` (300 seconds), by Roblox's `UpdatedTime` for the key | `MAX_RETRY_INTERVAL` x 1.5, which is 45 seconds | A session stops accepting changes when its lease runs out, so an owner this far behind has only its final save left to land. It gets long enough to do that. After a long outage every lock looks this old, and taking one at once would throw away what its owner was still trying to save. |
 
-!!! warning
-    Always keep `SESSION_LOCK_AUTO_RELEASE ≥ AUTO_SAVE_INTERVAL × 3`.
-    If the release window is shorter than the save interval, a slow auto-save can allow another server to steal the lock mid-session.
+A failed request restarts the wait, because it says nothing about the owner, which may be failing the same way. A write from the owner restarts it too, and the claim only goes through on the exact version of the lock that was watched. So a healthy session never loses its record, however long another server waits, and however wrong that server's clock is.
 
-## Graceful Shutdown
+The wait starts over if the player leaves and comes back.
 
-SoulStore binds to `game:BindToClose`, which Roblox calls before planned server shutdowns:
+Any later write from the former owner is rejected by its token check, and that session ends with `OwnershipLost`.
 
-1. Spawns a session-ending save for every cached soul.
-2. Yields until all `SessionEndBindableEvent` signals fire.
-3. All locks are released before the process exits.
+The original session also stops accepting gameplay operations when its last confirmed lease reaches `SESSION_LOCK_EXPIRY`. Background finalization then attempts an ownership-checked final save. A confirmed end for lease expiry records `LeaseExpired`; takeover by another token records `OwnershipLost`. The module does not automatically kick the player. Applications can use the completion event to choose their disconnect or recovery flow.
 
-Crash scenarios rely on the lock expiry mechanism above.
+The two settings do different jobs. `LOCK_TAKEOVER_TIME` is how long a waiting load watches a lock. `SESSION_LOCK_EXPIRY` is the lease: how long a session keeps working with no confirmed write, which is also how long players keep playing through an outage.
+
+Keep both comfortably longer than the autosave interval and expected DataStore delays. Shortening them trades faster crash recovery for a greater chance of taking over a session that is only slow.
+
+Never allow gameplay on defaults while waiting for another session's lock. Existing malformed data is not treated as a missing save.
+
+## Shutdown
+
+`BindToClose` stops new sessions, cancels pending loads, and requests final saves for active sessions. Already-ending sessions remain tracked. Shutdown checks each session's state until all have settled, within a bounded budget of about 25 seconds. Retries stay short during this time, which allows about six attempts.
+
+Network outages, hung requests, or platform termination can prevent a confirmed final save. Shutdown does not guarantee that every write succeeds; unreleased locks recover through expiry.
+
+`SessionEndBindableEvent` fires once for terminal outcomes with `(state, reason)`. Cancellation or ownership loss is completion, not proof of a successful final save.
+
+## Updating existing servers
+
+The persisted layout is unchanged: `MetaData.SessionId` remains a string, now containing an opaque GUID instead of JobId. Existing unlocked saves need no migration; existing locked saves remain protected until release, takeover or expiry.
+
+Drain old servers when deploying this change. Old code cannot enforce the new lifecycle and may already have pending writes that use only JobId. All new application code must treat SessionId as opaque; log JobId separately when debugging.

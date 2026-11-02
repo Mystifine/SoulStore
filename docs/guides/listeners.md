@@ -2,6 +2,10 @@
 
 `:OnDataChanged()` lets you react to mutations made through `:SetData()`.
 
+Pass `nil` as the path to observe the full data table. Listener paths distinguish string and number keys, including keys containing periods. Direct mutation of a `GetData` table does not trigger a notification.
+
+Both values are copies, taken before and after the write, so a listener can keep them or change them without affecting the saved data. To read the current data later, use `GetData` or keep what the next notification brings. A `nil` path listener's copies leave out `MetaData`. Copies are only made at levels something is listening to, and they cost more the larger the table is, so prefer listening to the narrowest path you need.
+
 ---
 
 ## Basic Usage
@@ -62,4 +66,4 @@ end)
 ```
 
 !!! note "Separate Threads"
-    Listeners are called via `task.spawn` and run concurrently. They never block `:SetData()`.
+    Listeners run through `task.spawn`; keep callbacks short. Notifications that have not started are skipped after disconnection or session end. All listener registrations are cleaned up when the soul settles.

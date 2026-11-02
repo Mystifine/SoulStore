@@ -33,3 +33,7 @@ nav:
       - Lifecycle Hooks: guides/lifecycle-hooks.md
       - Change Listeners: guides/listeners.md
       - Resetting Data: guides/reset-data.md
+      - Edge Cases: guides/edge-cases.md
+      - Load Testing: guides/load-testing.md
+      - Migrating from 1.x: guides/migrating.md
+      - How It Works: guides/architecture.md

@@ -1,0 +1,34 @@
+name: Validate SoulStore
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: CompeyDev/setup-rokit@v0.2.1
+        with:
+          version: v1.1.1
+      - name: Check formatting
+        run: stylua --check src tests
+      - name: Lint Luau
+        run: selene src tests
+      - name: Test session lifecycle
+        run: lune run tests/lifecycle.luau
+      - name: Test data store edge cases
+        run: lune run tests/edgecases.luau
+      - name: Test how games use SoulStore
+        run: lune run tests/consumers.luau
+      - name: Check the fake data store against real results
+        run: lune run tests/fakestore.luau
+      - name: Test popular servers, under load and failure
+        run: lune run tests/load.luau
+      - name: Build Roblox place
+        run: rojo build --output SoulStore.rbxlx

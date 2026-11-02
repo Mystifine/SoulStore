@@ -1,245 +1,149 @@
 # Soul Methods
 
-Instance methods available on a `Soul` object.
-
----
+A soul belongs to one exact Player instance and DataStore. Gameplay access requires an Active session with a current ownership lease. Use `getSoul` for readiness checks; it also checks lease age. A session starts ending as soon as its player leaves.
 
 ## `:LoadData()`
 
-Loads player data from the DataStore and acquires a session lock.
-
-**Signature**
 ```lua
-soul:LoadData() -> nil
+soul:LoadData() -> (boolean, string?)
 ```
 
-**Behaviour**
+Yields until ownership is acquired and `SetOnLoad` completes, or loading stops. Returns `true` only when the soul is Active; otherwise returns `false` and a reason. Concurrent callers wait for the same load rather than issuing duplicate acquisitions.
 
-- Yields the calling thread until data loads or the player leaves.
-- Retries indefinitely while the key is session-locked or a DataStore error occurs.
-- Writes default data if no existing save is found.
-- Fires the `SetOnLoad` callback before `LoadState` transitions to `"Loaded"`.
-- Caches the soul internally once loading succeeds.
+Foreign locks and transient DataStore errors retry while the player remains present. Defaults are written only for a missing record. Malformed existing data, including a record stored as an array, is never replaced with defaults: the load stops with `CorruptData` and the record is left as it is. Leaving or shutdown cancels pending work. A confirmed acquisition after cancellation is released without starting gameplay. If the response is uncertain, bounded recovery tries to release only this token; an unresolved lock relies on expiry.
 
-**State Guards**
-
-| Precondition | Result |
-|---|---|
-| `LoadState == "Loaded"` | No-op |
-| `LoadState == "Loading"` | No-op |
-| Player not in game | No-op |
-
-!!! warning
-    `:LoadData()` yields. Wrap in `task.spawn` if you need non-blocking startup.
-
-**Example**
 ```lua
-game.Players.PlayerAdded:Connect(function(player)
-    local soul = SoulStore.new("PlayerData", player, DEFAULT_DATA)
-    soul:LoadData()
-
-    if soul.LoadState == "Loaded" then
-        print("Coins:", soul:GetData({ "Coins" }))
-    end
-end)
+local soul = SoulStore.new("PlayerData", nil, player, DEFAULT_DATA)
+if not soul then return end
+local loaded, reason = soul:LoadData()
+if not loaded then
+    warn("Player data unavailable:", reason)
+    return
+end
+print("Coins:", soul:GetData({ "Coins" }))
 ```
-
----
 
 ## `:SaveData(sessionEnding?)`
 
-Saves the soul's current data to the DataStore.
-
-**Signature**
 ```lua
-soul:SaveData(sessionEnding: boolean?) -> nil
+soul:SaveData(sessionEnding: boolean?) -> (boolean, string?)
 ```
 
-**Parameters**
+With `false` or no argument, saves an Active soul, increments `SaveId`, refreshes `LastUpdate`, and retains ownership. It makes one attempt, waiting first behind any save already running. Returns `true` for a confirmed write; rejected or unavailable operations return `false` and a reason. A failed attempt is not retried, because the next autosave carries newer data anyway.
 
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `sessionEnding` | `boolean?` | `false` | When `true`, releases the session lock and cleans up the soul. |
+With `true`, immediately transitions to Ending, captures the final snapshot, and stops gameplay access. The final writer waits behind an in-flight save, then writes data and unlocks in the same `UpdateAsync`. It retries until the write lands, another session owns the record, or an error occurs that retrying cannot fix, in which case the lock is released without the final data. Repeated end requests coalesce; an end request received while finalization is running may return `false, "Ending"`. Observe `SessionEndBindableEvent` or terminal state for completion.
 
-**Behaviour**
+Foreign or missing ownership is never overwritten or reported as a successful save. Ending a Pulling soul cancels loading instead of saving its defaults. Called from inside a load or save hook, it returns `false, "CalledFromHook"`. See [Lifecycle Hooks](../guides/lifecycle-hooks.md).
 
-- **Mid-session save**: increments `SaveId`, updates `LastUpdate`, keeps the lock.
-- **Session-ending save**: sets `Locked = false` and `SessionId = ""`, fires `SessionEndBindableEvent`, and removes the soul from cache.
-- If a session-ending save is triggered while a regular save is running, the regular save is interrupted.
-- Retries on DataStore failure until success or the save state changes.
-
-**State Guards**
-
-| Precondition | Result |
-|---|---|
-| `LoadState ~= "Loaded"` | No-op |
-| `SaveState == "SessionEnding"` | No-op |
-| `SaveState == "Saving"` and not session-ending | No-op |
-
-**Example**
 ```lua
-soul:SaveData()        -- mid-session manual save (e.g. after a purchase)
-soul:SaveData(true)    -- session-ending (called automatically on PlayerRemoving)
+local saved, reason = soul:SaveData()
+if not saved then warn("Save not confirmed:", reason) end
+-- Normally automatic on PlayerRemoving and shutdown:
+soul:SaveData(true)
 ```
-
----
 
 ## `:GetData(path?)`
 
-Retrieves a value at the given path from `soul.Data`.
-
-**Signature**
 ```lua
-soul:GetData(path: {any}?) -> any?
+soul:GetData(path: {string | number}?) -> any?
 ```
 
-**Parameters**
+Returns a nested value, or the full data table when the path is omitted. Returns `nil` outside Active, for a missing key, or when traversal encounters a non-table.
 
-| Parameter | Type | Description |
-|---|---|---|
-| `path` | `{any}?` | Array of keys to traverse. Pass `nil` to return the full data table. |
-
-**Returns** The value at the path, or `nil` if any key is missing or data is not loaded.
-
-**Example**
 ```lua
-local all   = soul:GetData()
 local coins = soul:GetData({ "Coins" })
 local level = soul:GetData({ "Stats", "Level" })
-local item  = soul:GetData({ "Inventory", 1 })
+local item = soul:GetData({ "Inventory", 1 })
 ```
 
----
+Table results remain live references for compatibility. Direct mutation bypasses state guards and listeners, so prefer `SetData`. The final snapshot is captured when Ending starts; later changes through retained references do not affect it.
 
 ## `:SetData(path, value)`
 
-Sets a value at the given path in `soul.Data` and fires any registered change listeners.
-
-**Signature**
 ```lua
-soul:SetData(path: {any}, value: any) -> any?
+soul:SetData(path: {string | number}, value: any) -> any?
 ```
 
-**Parameters**
+Sets a value and notifies path listeners. Returns the assigned value, or `nil` on rejection. Requires an Active soul, a nonempty path, and existing intermediate tables. `MetaData` is reserved for SoulStore.
 
-| Parameter | Type | Description |
-|---|---|---|
-| `path` | `{any}` | One or more keys. Must not be empty. |
-| `value` | `any` | The value to assign at the final key. |
+Values a DataStore cannot hold are rejected: functions, threads, Instances and other Roblox types, strings that are not valid UTF-8, table keys that are not strings or numbers, and tables that contain themselves. NaN is rejected as well, because it is always a bug and would replace a good value. If one of these reaches the data through a direct table write, it is left out of each save with a warning instead of failing the save, except NaN, which saves as it is, also with a warning.
 
-**Returns** The value that was set, or `nil` on failure.
+So are writes a DataStore would change or lose: a number key on a table with string keys, including the top of the save, a string key on an array, a number key that is not a whole number from 1, any number key but 1 on a table that is not an array yet, and a value with any of these inside it. See [What can be saved](../guides/data-operations.md#what-can-be-saved). Check the return value when granting something of value.
 
-!!! warning "Intermediate Keys Must Exist"
-    `:SetData()` traverses but does not create intermediate tables. Ensure all nested structures are pre-defined in `DEFAULT_DATA`.
-
-**Example**
 ```lua
 soul:SetData({ "Coins" }, 500)
 soul:SetData({ "Stats", "Level" }, 10)
 soul:SetData({ "Inventory" }, { "Sword", "Shield" })
 ```
 
----
-
 ## `:Reconcile(data)`
 
-Merges an external table into `soul.Data`, filling in only keys that are currently `nil`.
-
-**Signature**
 ```lua
 soul:Reconcile(data: {}?) -> nil
 ```
 
-**Behaviour**
+Recursively fills missing string keys on an Active soul without replacing existing values. An array the save already has is left as it is, and a missing one is copied whole. Newly inserted tables are copied; reserved metadata is excluded.
 
-- Recursive — handles nested tables.
-- Never overwrites an existing value.
-- Warns and returns early if data is not loaded or `data` is `nil`.
-
-**Example**
 ```lua
-local DEFAULTS = { Coins = 0, Level = 1, NewField = "hello" }
-
-soul:SetOnLoad(function()
-    soul:Reconcile(DEFAULTS) -- back-fills NewField on old saves
-end)
+if soul:LoadData() then
+    soul:Reconcile(DEFAULT_DATA)
+end
 ```
 
----
+Inside `SetOnLoad`, work directly on the callback argument; gameplay methods are unavailable before Active.
 
 ## `:OnDataChanged(path, callback)`
 
-Registers a listener that fires when a value at `path` changes via `:SetData()`.
-
-**Signature**
 ```lua
 soul:OnDataChanged(
-    path     : {string | number},
-    callback : (oldData: any?, newData: any?) -> nil
+    path: {string | number}?,
+    callback: (oldData: any?, newData: any?) -> nil
 ) -> { Disconnect: () -> nil }
 ```
 
-**Parameters**
-
-| Parameter | Type | Description |
-|---|---|---|
-| `path` | `{string | number}` | Path to watch. Also fires for `:SetData()` calls whose path passes through this path. |
-| `callback` | `function` | Receives `oldData` and `newData`. Called via `task.spawn`. |
-
-**Returns** A connection object with a `Disconnect()` method.
-
-!!! note "Partial Path Matching"
-    A listener on `{ "Stats" }` fires when `:SetData({ "Stats", "Level" }, 5)` is called. See the [Change Listeners guide](../guides/listeners.md) for details.
-
-**Example**
-```lua
-local conn = soul:OnDataChanged({ "Coins" }, function(old, new)
-    print(("Coins: %d → %d"):format(old, new))
-end)
-soul:SetData({ "Coins" }, 100) --> Coins: 0 → 100
-conn:Disconnect()
-```
-
----
+Registers a listener for `SetData` changes. A listener on `{ "Stats" }` also fires for `{ "Stats", "Level" }`. It receives copies of the old and new values. Pass `nil` to observe the full data table. Call `Disconnect()` to unsubscribe. Listeners are cleaned up when the soul terminates. See [Change Listeners](../guides/listeners.md).
 
 ## `:SetOnLoad(callback)`
 
-Registers a callback called after data is read from the DataStore, before `LoadState` becomes `"Loaded"`.
-
-**Signature**
 ```lua
 soul:SetOnLoad(callback: (data: {}) -> nil) -> nil
 ```
 
-The callback receives the raw data table **by reference**. Mutations affect what the soul stores in memory.
+Register before loading. Receives acquired data for validation or migration before Active. Mutate the argument directly. Hooks must not yield or modify `MetaData`.
 
-!!! note
-    Must be called **before** `:LoadData()`.
+A failed hook prevents gameplay. SoulStore releases ownership using the original acquired record, so partial migration changes are not saved.
 
-**Example**
 ```lua
 soul:SetOnLoad(function(data)
     data.Coins = math.clamp(data.Coins or 0, 0, 1_000_000)
 end)
-soul:LoadData()
+local loaded, reason = soul:LoadData()
 ```
-
----
 
 ## `:SetOnSave(callback)`
 
-Registers a callback called before each DataStore write, receiving a **deep copy** of `soul.Data`.
-
-**Signature**
 ```lua
-soul:SetOnSave(callback: (data: {}) -> nil) -> nil
+soul:SetOnSave(callback: (snapshot: {}) -> nil) -> nil
 ```
 
-Mutations affect only the save snapshot — `soul.Data` is not changed.
+Receives a copy of the save payload. Changes affect only that attempt, not live data. Hooks must not yield, modify `MetaData`, or perform non-idempotent side effects: they may run again on retries. Failed hooks do not commit their partial snapshots.
 
-**Example**
 ```lua
 soul:SetOnSave(function(snapshot)
-    snapshot.TempBoost = nil -- strip runtime-only field before saving
+    snapshot.TempBoost = nil
 end)
 ```
+
+## Session completion
+
+`SessionEndBindableEvent.Event` fires once with `(state, reason)` for terminal outcomes, including cancellation and ownership loss. The event and listeners are then destroyed. Connect before starting work; inspect `SessionState` and `EndReason` after completion instead of waiting for an event that already fired.
+
+```lua
+soul.SessionEndBindableEvent.Event:Connect(function(state, reason)
+    print("Data session settled:", state, reason)
+end)
+```
+
+Terminal state alone does not prove that a final save succeeded.
+
+An expired confirmed lease immediately blocks gameplay access and triggers background finalization. `EndReason == "LeaseExpired"` identifies a session ended for that reason; if another token already owns the record, finalization instead reports `OwnershipLost`. SoulStore does not kick the player automatically; the owning service can react to the completion event.

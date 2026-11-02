@@ -1,137 +1,97 @@
 # SoulStore Static Methods
 
-Static methods on the `SoulStore` module table.
-
----
-
 ## `SoulStore.new()`
 
-Creates a new `Soul` object. Returns an existing cached soul if one is already loaded for this player and DataStore ID.
-
-**Signature**
 ```lua
-SoulStore.new(
-    datastoreId : string,
-    player      : Player,
-    defaultData : {}
-) -> Soul?
+SoulStore.new(datastoreId: string, scope: string?, player: Player, defaultData: {}) -> Soul?
 ```
 
-**Parameters**
+Creates and caches a Pulling soul for the exact Player instance, DataStore, and scope. Repeated calls return its pending or active soul. A different Player instance with the same UserId gets a new object and GUID token. Ending or terminal objects are never reused.
 
-| Parameter | Type | Description |
-|---|---|---|
-| `datastoreId` | `string` | DataStore name to read from and write to. |
-| `player` | `Player` | The `Player` instance. |
-| `defaultData` | `{}` | Starting data template. Deep-copied into the soul. |
+`scope` selects the DataStore scope; `nil` uses Roblox's default, `"global"`. Each scope holds separate records and separate sessions.
 
-**Returns** `Soul?` — `nil` if `defaultData` is not a table or the player has left.
+Returns `nil` for invalid arguments, a departed player, or shutdown, and for defaults that could not be saved: an array at the top, or anything `SetData` would refuse inside it. Defaults are copied and unavailable through gameplay methods until loading succeeds.
 
 ```lua
-local soul = SoulStore.new("PlayerData", player, { Coins = 0, Level = 1 })
+local soul = SoulStore.new("PlayerData", nil, player, { Coins = 0 })
+if not soul then return end
+if not soul:LoadData() then return end
+soul:SetData({ "Coins" }, 100)
 ```
 
----
-
-## `SoulStore.getSoul()`
-
-Retrieves a cached soul by DataStore ID and player.
-
-**Signature**
-```lua
-SoulStore.getSoul(datastoreId: string, player: Player) -> Soul?
-```
-
-**Returns** `Soul?` — the cached soul, or `nil` if not found.
+## Session lookups
 
 ```lua
-local soul = SoulStore.getSoul("PlayerData", player)
-if soul then
-    soul:SetData({ "Coins" }, 999)
-end
+SoulStore.getSoul(datastoreId: string, scope: string?, player: Player) -> Soul?
+SoulStore.getPendingSoul(datastoreId: string, scope: string?, player: Player) -> Soul?
+SoulStore.getEndingSoul(datastoreId: string, scope: string?, player: Player) -> Soul?
+SoulStore.hasActiveSession(datastoreId: string, scope: string?, player: Player) -> boolean
 ```
 
----
+All lookups use the exact Player instance, DataStore, and scope. `getSoul` returns only an Active soul whose confirmed lease has not expired; a session stops being Active as soon as its player leaves. Pending and ending helpers are for inspection; their data is unavailable for gameplay. Old-session cleanup cannot remove a new Player instance's soul.
 
 ## `SoulStore.playerExists()`
 
-Returns `true` if the player is currently in the game.
-
-**Signature**
 ```lua
-SoulStore.playerExists(player: Player?) -> boolean?
+SoulStore.playerExists(player: Player?) -> boolean
 ```
 
-Checks `player and player:IsA("Player") and player.Parent == Players`.
-
----
+Returns whether the argument is a Player currently parented to `Players`.
 
 ## `SoulStore.getMetaData()`
 
-Returns a fresh `SoulMetaData` table for the current server and timestamp. Called internally during first-time data creation.
-
-**Signature**
 ```lua
-SoulStore.getMetaData() -> SoulMetaData
--- Returns: { Locked = true, SaveId = 0, LastUpdate = os.time(), SessionId = game.JobId }
+SoulStore.getMetaData(sessionToken: string?) -> SoulMetaData
 ```
 
----
+Returns fresh metadata with `SaveId = 0` and the current timestamp. Without a token, returns `Locked = false, SessionId = ""`. With a token, returns locked metadata owned by that token. `SessionId` is opaque and does not identify a server JobId. Applications should not overwrite persisted metadata.
 
 ## `SoulStore.deepCopy()`
 
-Recursively copies a table, or returns a primitive value unchanged.
-
-**Signature**
 ```lua
 SoulStore.deepCopy(data: any?) -> any
 ```
 
-```lua
-local copy = SoulStore.deepCopy({ Stats = { Level = 5 } })
-copy.Stats.Level = 99
--- original table is unchanged
-```
-
----
+Recursively copies tables, keeping each table's length and leaving metatables behind. Returns primitive values unchanged.
 
 ## `SoulStore.output()`
 
-Logs a message using the provided function, respecting `DEBUG_MODE` and `TRACE_BACK_MESSAGE`. No-ops if `DEBUG_MODE` is `false`.
-
-**Signature**
 ```lua
 SoulStore.output(outputFunction: (any) -> any, ...: any) -> nil
 ```
 
----
+Writes diagnostics using the supplied function, respecting `DEBUG_MODE` and `TRACE_BACK_MESSAGE`. Persistence warnings remain visible when verbose debug output is disabled.
+
+## `SoulStore.getDatastore()`
+
+```lua
+SoulStore.getDatastore(datastoreId: string, scope: string?) -> DataStore
+```
+
+Returns the DataStore that SoulStore uses for that name and scope.
 
 ## `SoulStore.resetData()`
 
-Removes a single player's DataStore key.
-
-**Signature**
 ```lua
-SoulStore.resetData(datastoreId: string, datastoreKey: string) -> nil
+SoulStore.resetData(datastoreId: string, scope: string?, datastoreKey: string) -> boolean
 ```
+
+Removes one DataStore key and returns whether it succeeded. Refused while this server has a session for that key. Sessions on other servers cannot be detected, so stop them first.
 
 !!! danger "Data Loss"
-    Permanently deletes the player's saved data. Cannot be undone.
+    Deletes the saved profile. See [Resetting Data](../guides/reset-data.md).
 
 ```lua
-SoulStore.resetData("PlayerData", tostring(player.UserId))
+SoulStore.resetData("PlayerData", nil, tostring(player.UserId))
 ```
-
----
 
 ## `SoulStore.resetAllData()`
 
-Deletes **every key** in a DataStore. Waits 10 seconds, then pages through all keys and removes each one sequentially.
-
-**Signature**
 ```lua
-SoulStore.resetAllData(datastoreId: string) -> nil
+SoulStore.resetAllData(datastoreId: string, scope: string?, confirmation: string?) -> boolean
 ```
 
-!!! danger "Irreversible — Extreme Caution"
-    Permanently wipes all player data. See the [Resetting Data guide](../guides/reset-data.md) before using.
+Waits 10 seconds, lists all keys, then removes them sequentially. Returns whether every key was removed. Refused while this server has a session in that DataStore. Outside Studio, `confirmation` must repeat `datastoreId` or nothing is deleted. Stop sessions on other servers first.
+
+!!! danger "Data Loss"
+    Deletes every profile. See [Resetting Data](../guides/reset-data.md).
