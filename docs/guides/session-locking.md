@@ -35,30 +35,25 @@ If the acquisition response failed and ownership is uncertain, cancellation prob
 
 ## Crash recovery
 
-A load only ever takes a lock after watching it not change, on the load's own clock. How long depends on how old the lock is:
+`SESSION_EXPIRY` (2 minutes) is the one setting for session locks. A lock can be taken once Roblox's `UpdatedTime` for the key says it has gone that long without a write. A live session writes every autosave, so this much silence means its server crashed or cannot reach the data store.
 
-| Lock | Watched for | Why |
-|---|---|---|
-| Written recently | `LOCK_TAKEOVER_TIME` (90 seconds, three autosaves) | A live session writes every autosave, so this much silence means its server crashed or cannot reach the data store. |
-| Older than `SESSION_LOCK_EXPIRY` (300 seconds), by Roblox's `UpdatedTime` for the key | `MAX_RETRY_INTERVAL` x 1.5, which is 45 seconds | A session stops accepting changes when its lease runs out, so an owner this far behind has only its final save left to land. It gets long enough to do that. After a long outage every lock looks this old, and taking one at once would throw away what its owner was still trying to save. |
+A load does not take an expired lock on first sight. It waits `TAKEOVER_DELAY` (15 seconds) and takes it only if it has not changed. After an outage every lock looks expired, and its owner may be about to land its final save, which retries at most about every 10 seconds, so the final save gets there first.
 
-A failed request restarts the wait, because it says nothing about the owner, which may be failing the same way. A write from the owner restarts it too, and the claim only goes through on the exact version of the lock that was watched. So a healthy session never loses its record, however long another server waits, and however wrong that server's clock is.
+A failed request restarts that wait, because it says nothing about the owner, which may be failing the same way. A write from the owner restarts it too, and the claim only goes through on the exact version of the lock that was watched. Leaving and coming back costs nothing, because the lock's age keeps counting.
 
-The wait starts over if the player leaves and comes back.
+If this server's clock is slow, a lock can look newer than it is. So a load that has watched a lock for all of `SESSION_EXPIRY` takes it, however new it looks.
 
-Any later write from the former owner is rejected by its token check, and that session ends with `OwnershipLost`.
+Any later write from the former owner is rejected by its token check, and that session ends with `OwnershipLost`. The module does not automatically kick the player. Applications can use the completion event to choose their disconnect or recovery flow.
 
-The original session also stops accepting gameplay operations when its last confirmed lease reaches `SESSION_LOCK_EXPIRY`. Background finalization then attempts an ownership-checked final save. A confirmed end for lease expiry records `LeaseExpired`; takeover by another token records `OwnershipLost`. The module does not automatically kick the player. Applications can use the completion event to choose their disconnect or recovery flow.
+An outage does not end a session. It stays Active and keeps accepting changes, and its next save lands once the store is back.
 
-The two settings do different jobs. `LOCK_TAKEOVER_TIME` is how long a waiting load watches a lock. `SESSION_LOCK_EXPIRY` is the lease: how long a session keeps working with no confirmed write, which is also how long players keep playing through an outage.
-
-Keep both comfortably longer than the autosave interval and expected DataStore delays. Shortening them trades faster crash recovery for a greater chance of taking over a session that is only slow.
+Keep the expiry comfortably longer than the autosave interval and expected DataStore delays. Shortening it trades faster crash recovery for a greater chance of taking over a session that is only slow.
 
 Never allow gameplay on defaults while waiting for another session's lock. Existing malformed data is not treated as a missing save.
 
 ## Shutdown
 
-`BindToClose` stops new sessions, cancels pending loads, and requests final saves for active sessions. Already-ending sessions remain tracked. Shutdown checks each session's state until all have settled, within a bounded budget of about 25 seconds. Retries stay short during this time, which allows about six attempts.
+`BindToClose` stops new sessions, cancels pending loads, and requests final saves for active sessions. Already-ending sessions remain tracked. Shutdown checks each session's state until all have settled, and keeps the server up for as long as Roblox allows, which is 30 seconds. Retries stay short during this time, which allows about seven attempts.
 
 Network outages, hung requests, or platform termination can prevent a confirmed final save. Shutdown does not guarantee that every write succeeds; unreleased locks recover through expiry.
 

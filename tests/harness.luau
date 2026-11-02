@@ -934,6 +934,7 @@ local function newWorld(options)
 		equal(soul.SessionState, "Active")
 		return soul
 	end
+	-- Roblox ends the server 30 seconds in, whatever is still running
 	function world:close()
 		local remaining = #self.closers
 		for _, callback in ipairs(self.closers) do
@@ -942,9 +943,13 @@ local function newWorld(options)
 				remaining -= 1
 			end)
 		end
+		local deadline = self.scheduler.now + 30
 		self.scheduler:runUntil(function()
-			return remaining == 0
+			return remaining == 0 or self.scheduler.now >= deadline
 		end, 35)
+		if remaining > 0 then
+			self:crash()
+		end
 	end
 	-- Whether any line of output contains this text
 	function world:logged(text)

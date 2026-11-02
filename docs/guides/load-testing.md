@@ -2,7 +2,7 @@
 
 Edge case tests check one thing at a time. These check the ordinary day: whether everyone's data is saved consistently and fairly, at a sensible cost, when a whole game is running at once, and what happens when that game has a bad day.
 
-Everything here was run on 2 November 2026 against version 2.0.0. Run it yourself before you rely on it, because Roblox's limits change.
+Everything here was run on 2 November 2026 against version 2.0.0. Run it yourself before you rely on it, because Roblox's limits change. The session rules have changed since then: there is no lease any more, and one expiry replaces the two old settings. So the outage, crash and shutdown rows below need a new run.
 
 ## What runs
 

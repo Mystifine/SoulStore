@@ -1,6 +1,6 @@
 # Soul Methods
 
-A soul belongs to one exact Player instance and DataStore. Gameplay access requires an Active session with a current ownership lease. Use `getSoul` for readiness checks; it also checks lease age. A session starts ending as soon as its player leaves.
+A soul belongs to one exact Player instance and DataStore. Gameplay access requires an Active session. Use `getSoul` for readiness checks. A session starts ending as soon as its player leaves. An outage does not end a session: it stays Active, and its next save lands once the store is back.
 
 ## `:LoadData()`
 
@@ -146,4 +146,4 @@ end)
 
 Terminal state alone does not prove that a final save succeeded.
 
-An expired confirmed lease immediately blocks gameplay access and triggers background finalization. `EndReason == "LeaseExpired"` identifies a session ended for that reason; if another token already owns the record, finalization instead reports `OwnershipLost`. SoulStore does not kick the player automatically; the owning service can react to the completion event.
+If another session takes the record, this session's next write is refused and it ends with `EndReason == "OwnershipLost"`. SoulStore does not kick the player automatically; the owning service can react to the completion event.

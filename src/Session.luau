@@ -67,15 +67,12 @@ function Session.isSettled(soul: Soul): boolean
 	return soul.SessionState == SESSION_STATES.Ended or soul.SessionState == SESSION_STATES.Cancelled
 end
 
-function Session.isLeaseExpired(soul: Soul): boolean
-	return os.clock() - soul._leaseConfirmedAt >= Config.SESSION_LOCK_EXPIRY
-end
-
--- Gameplay may only touch a session that is active and still holds a current lease. Leaving ends the session through
--- PlayerRemoving, so this does not check the player: leave handlers and the final save hook can still read and write,
--- and what they write is in the final save.
+-- Gameplay may only touch a session that is active. An outage does not end one: its next save lands once the store is
+-- back, or finds out that another session took the record. Leaving ends the session through PlayerRemoving, so this
+-- does not check the player: leave handlers and the final save hook can still read and write, and what they write is
+-- in the final save.
 function Session.isUsable(soul: Soul): boolean
-	return soul.SessionState == SESSION_STATES.Active and not Session.isLeaseExpired(soul)
+	return soul.SessionState == SESSION_STATES.Active
 end
 
 ---------------------------------------------------------------------------------------------------------------- Helpers
@@ -115,10 +112,9 @@ local function isRetryable(message: any): boolean
 	return not (code and NON_RETRYABLE_ERRORS[code])
 end
 
-local function nextRetryDelay(delay: number): number
+local function nextRetryDelay(delay: number, longest: number): number
 	-- Shutdown only has about 30 seconds, so retries do not slow down much
-	local longest = if Session.isShuttingDown then Config.RETRY_INTERVAL * 3 else Config.MAX_RETRY_INTERVAL
-	return math.min(delay * 1.5, longest)
+	return math.min(delay * 1.5, if Session.isShuttingDown then Config.RETRY_INTERVAL * 3 else longest)
 end
 
 -- Waits about this long. The jitter keeps players and servers from all retrying at the same moment.
@@ -129,10 +125,15 @@ local function waitUnless(duration: number, shouldStop: () -> boolean)
 	end
 end
 
+-- A save running this long has probably hung, and must not stop this player's progress from being saved
+function Session.hasSaveHung(soul: Soul): boolean
+	return soul.IsSaving and os.clock() - soul.LastAutoSave >= Config.HUNG_SAVE_TIME
+end
+
 -- Waits for the one save that can be running. Gives up if the session moves on or that save seems to have hung.
 local function waitForWriter(soul: Soul, state: string)
 	local deadline = os.clock() + Config.WRITER_WAIT_TIMEOUT
-	while soul.IsSaving and soul.SessionState == state and os.clock() < deadline do
+	while soul.IsSaving and soul.SessionState == state and os.clock() < deadline and not Session.hasSaveHung(soul) do
 		task.wait()
 	end
 end
@@ -223,9 +224,16 @@ end
 	Roblox may run a transform more than once, so every metadata field is set from the record it was given.
 ]]
 local function writeRecord(soul: Soul, payload: any, isFinal: boolean): (string, any)
-	local outcome, confirmedAt = nil, nil
+	-- Only the newest write may land. One that hung and comes back late holds older data than the one after it.
+	soul._newestWrite += 1
+	local thisWrite = soul._newestWrite
+	local outcome = nil
 	local ok, result = updateRecord(soul, function(oldData, keyInfo)
-		outcome, confirmedAt = nil, nil
+		outcome = nil
+		if thisWrite ~= soul._newestWrite then
+			outcome = "Superseded"
+			return nil
+		end
 
 		local stored = if typeof(oldData) == "table" then oldData.MetaData else nil
 		local canSave = typeof(stored) == "table" and stored.SessionId == soul.SessionToken
@@ -241,7 +249,6 @@ local function writeRecord(soul: Soul, payload: any, isFinal: boolean): (string,
 			return nil
 		end
 
-		confirmedAt = os.clock()
 		local metaData = payload.MetaData
 		metaData.SaveId = (tonumber(stored.SaveId) or 0) + 1
 		metaData.LastUpdate = os.time()
@@ -261,8 +268,9 @@ local function writeRecord(soul: Soul, payload: any, isFinal: boolean): (string,
 	elseif outcome == "AlreadySaved" then
 		return "Saved", nil
 	elseif outcome == "Saved" and result ~= nil then
-		soul._leaseConfirmedAt = confirmedAt
 		return "Saved", result
+	elseif outcome == "Superseded" then
+		return "Failed", "a newer save started while this one was running"
 	end
 	-- Neither refused nor confirmed, which is what a failing transform looks like: Roblox prints why, raises nothing and
 	-- writes nothing. The next attempt reads the record and finds out what really happened.
@@ -293,7 +301,7 @@ local function releaseOwnedRecord(soul: Soul, timeout: number): boolean
 		end
 
 		task.wait(math.min(retryDelay, deadline - os.clock()))
-		retryDelay = nextRetryDelay(retryDelay)
+		retryDelay = nextRetryDelay(retryDelay, Config.MAX_RETRY_INTERVAL)
 	until os.clock() >= deadline
 	return false
 end
@@ -330,7 +338,7 @@ local function cancelAcquisition(soul: Soul, uncertain: boolean, reason: string?
 	return false, soul.EndReason
 end
 
-local function finishAcquisition(soul: Soul, data: any, confirmedAt: number): (boolean, string?)
+local function finishAcquisition(soul: Soul, data: any): (boolean, string?)
 	local metaData = DeepCopyUtil.deepCopy(data.MetaData)
 	if soul._onLoad then
 		local ok, problem = runHook(soul._onLoad, data)
@@ -353,7 +361,6 @@ local function finishAcquisition(soul: Soul, data: any, confirmedAt: number): (b
 	data.MetaData = metaData
 	soul.Data = data
 	soul._defaultData = nil
-	soul._leaseConfirmedAt = confirmedAt
 	soul.SessionState = SESSION_STATES.Active
 	soul.LoadState = LOAD_STATES.Loaded
 	-- Spreads autosaves over the whole interval, where they stay, even when many players arrive together.
@@ -370,14 +377,12 @@ local function getLockAge(metaData: any, keyInfo: any): number
 	return os.time() - writtenAt
 end
 
--- How long a load must see a lock not change before taking it. A lock older than the lease has an owner that stopped
--- accepting changes, if it is alive at all, so it gets less time. It still gets some: after a long outage every lock
--- looks that old, and its owner may only be waiting to land its final save, which must not lose the race for the lock.
+-- How long a load must see a lock not change before taking it. A lock past the expiry only gets a short look, because
+-- after an outage every lock looks that old and its owner may only be waiting to land its final save, which must not
+-- lose the race for the lock. A lock that looks newer is still taken after watching it for the whole expiry, in case
+-- this server's clock is slow.
 local function getTakeoverTime(age: number): number
-	local forFinalSave = Config.MAX_RETRY_INTERVAL * 1.5 -- a final save's slowest retry, and time for it to land
-	return if age >= Config.SESSION_LOCK_EXPIRY
-		then math.min(forFinalSave, Config.LOCK_TAKEOVER_TIME)
-		else Config.LOCK_TAKEOVER_TIME
+	return if age >= Config.SESSION_EXPIRY then Config.TAKEOVER_DELAY else Config.SESSION_EXPIRY
 end
 
 local function acquireSession(soul: Soul): (boolean, string?)
@@ -395,9 +400,9 @@ local function acquireSession(soul: Soul): (boolean, string?)
 			return cancelAcquisition(soul, uncertain)
 		end
 
-		local outcome, confirmedAt, takeoverTime, seenLock = nil, nil, nil, nil
+		local outcome, takeoverTime, seenLock = nil, nil, nil
 		local ok, result = updateRecord(soul, function(oldData, keyInfo)
-			outcome, confirmedAt, takeoverTime, seenLock = nil, nil, nil, nil
+			outcome, takeoverTime, seenLock = nil, nil, nil
 
 			-- The player left while this request was queued, so there is nothing to claim
 			if shouldStop() then
@@ -439,7 +444,6 @@ local function acquireSession(soul: Soul): (boolean, string?)
 				data.MetaData = metaData
 			end
 
-			confirmedAt = os.clock()
 			metaData.SaveId = (tonumber(metaData.SaveId) or 0) + 1
 			metaData.SessionId = soul.SessionToken
 			metaData.Locked = true
@@ -449,7 +453,7 @@ local function acquireSession(soul: Soul): (boolean, string?)
 		end)
 
 		if ok and outcome == "Acquired" and result ~= nil then
-			return finishAcquisition(soul, result, confirmedAt)
+			return finishAcquisition(soul, result)
 		elseif ok and outcome == "Corrupt" then
 			Logger.warn("LoadData => Save for %s is malformed; not touching it", describe(soul))
 			return cancelAcquisition(soul, false, "CorruptData")
@@ -460,7 +464,7 @@ local function acquireSession(soul: Soul): (boolean, string?)
 				watchedLock, watchedSince = seenLock, os.clock()
 			end
 			local secondsLeft = takeoverTime - (os.clock() - watchedSince)
-			Logger.warn("LoadData => Data for %s is locked. Time Until Takeover: %d(s)", describe(soul), secondsLeft)
+			Logger.warn("LoadData => Data for %s is locked. Takeover in at most: %d(s)", describe(soul), secondsLeft)
 			waitUnless(Config.LOAD_ATTEMPT_INTERVAL, shouldStop)
 		elseif ok and outcome == nil and shouldStop() then
 			continue -- The transform saw the player leave, and the check at the top of the loop handles that
@@ -476,7 +480,7 @@ local function acquireSession(soul: Soul): (boolean, string?)
 			-- The request may have committed before it failed, so from here this session might hold the lock.
 			uncertain = true
 			waitUnless(retryDelay, shouldStop)
-			retryDelay = nextRetryDelay(retryDelay)
+			retryDelay = nextRetryDelay(retryDelay, Config.MAX_RETRY_INTERVAL)
 		end
 	end
 end
@@ -561,7 +565,7 @@ function Session.save(soul: Soul): (boolean, string?)
 	if not Session.isUsable(soul) then
 		return false, soul.EndReason or soul.SessionState
 	end
-	if soul.IsSaving then
+	if soul.IsSaving and not Session.hasSaveHung(soul) then
 		return false, SAVE_STATES.Saving
 	end
 
@@ -607,7 +611,7 @@ local function finalizeSession(soul: Soul, payload: any?): (boolean, string?)
 	while soul.SessionState == SESSION_STATES.Ending do
 		local outcome, detail = writeRecord(soul, payload, true)
 		if outcome == "Saved" then
-			Session.settle(soul, SESSION_STATES.Ended, soul._endReason or "Saved")
+			Session.settle(soul, SESSION_STATES.Ended, "Saved")
 			return true
 		elseif outcome == "Refused" then
 			Session.settle(soul, SESSION_STATES.Ended, "OwnershipLost")
@@ -622,13 +626,13 @@ local function finalizeSession(soul: Soul, payload: any?): (boolean, string?)
 		waitUnless(retryDelay, function()
 			return soul.SessionState ~= SESSION_STATES.Ending
 		end)
-		retryDelay = nextRetryDelay(retryDelay)
+		retryDelay = nextRetryDelay(retryDelay, Config.MAX_FINAL_SAVE_RETRY_INTERVAL)
 	end
 	return false, soul.EndReason
 end
 
 -- Ends a session: cancels a load in progress, or writes the final save and releases the lock.
-function Session.finish(soul: Soul, reason: string): (boolean, string?)
+function Session.finish(soul: Soul): (boolean, string?)
 	if soul.SessionState == SESSION_STATES.Pulling then
 		soul._cancelRequested = true
 		if not soul._isLoading then
@@ -644,7 +648,6 @@ function Session.finish(soul: Soul, reason: string): (boolean, string?)
 	-- The final copy and the hook happen here, before anything can yield, so nothing that runs later can change them.
 	-- The state only changes afterwards, so a hook folding in-memory progress into the copy can still read the session.
 	soul._isSealing = true
-	soul._endReason = reason
 	local built, payload = pcall(buildPayload, soul, soul.Data, true)
 	if not (built and payload) then
 		-- A failed hook must not cost the player the rest of their progress

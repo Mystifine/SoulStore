@@ -12,7 +12,7 @@ if not loaded then return end
 soul:Reconcile(DEFAULT_DATA)
 ```
 
-For later lookups, use `SoulStore.getSoul("PlayerData", nil, player)`. It returns only a usable Active soul for that exact Player instance, including a check of the confirmed lease age. A state string alone does not prove a session is still usable.
+For later lookups, use `SoulStore.getSoul("PlayerData", nil, player)`. It returns only an Active soul for that exact Player instance.
 
 ## Path arrays
 

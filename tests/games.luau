@@ -713,7 +713,7 @@ fleetTest("a crashed old server is taken over by a new one", function(old, new, 
 	local arriving, state = newLoad(new, 7005, { Coins = 0 })
 	scheduler:runUntil(function()
 		return state.done
-	end, 120)
+	end, 160)
 	equal(state.loaded, true)
 	equal(stores.PlayerData.data["7005"].MetaData.SessionId, arriving.SessionToken)
 end)

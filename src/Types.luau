@@ -30,12 +30,11 @@ export type Soul = {
 	_onSave: ((dataToBeSaved: {}) -> ())?,
 	_onLoad: ((dataToBeLoaded: {}) -> ())?,
 	_defaultData: {}?,
-	_leaseConfirmedAt: number,
+	_newestWrite: number,
 	_warned: { [string]: boolean },
 	_isLoading: boolean,
 	_isSealing: boolean,
 	_cancelRequested: boolean,
-	_endReason: string?,
 	_finalSaveId: number?,
 
 	OnDataChanged: (

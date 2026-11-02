@@ -112,7 +112,7 @@ Fleet.SoulStore = {
 	name = "SoulStore",
 	sources = nil, -- the files in src/
 	takeoverAfter = function(world: any): number
-		return world.config.LOCK_TAKEOVER_TIME
+		return world.config.SESSION_EXPIRY
 	end,
 	-- The game's data, the save's counter if it has one, and the session holding the lock
 	read = function(record: any): (any, number?, string?)
@@ -350,6 +350,7 @@ function Fleet.new(settings: any)
 		sessions = 0,
 		points = 0,
 		lostPoints = 0,
+		turnsWithoutSession = 0,
 		worstLoss = 0,
 		accountsWithLoss = 0,
 		purchases = 0,
@@ -681,6 +682,10 @@ function Fleet.new(settings: any)
 	local function playTurn(session: any)
 		local handle = session.handle
 		if not session.loaded or not handle.isActive() then
+			-- Play that cannot be saved, which losing nothing that was accepted would not show
+			if session.loaded and not session.visit.gone then
+				fleet.turnsWithoutSession += 1
+			end
 			return
 		end
 		local random = fleet.random
@@ -1188,6 +1193,7 @@ function Fleet.new(settings: any)
 				self.abandoned
 			)
 		)
+		print(string.format("    Turns played with no session: %d", self.turnsWithoutSession))
 		print("    Sessions ended: " .. listCounts(self.ended))
 		print("    Loads that failed: " .. listCounts(self.loadFailed))
 		print("    Output: " .. listCounts(self.logCounts))
@@ -1282,7 +1288,6 @@ end
 local function expectNoLoss(fleet: any)
 	harness.equal(fleet.lostPoints, 0, "Progress lost")
 	harness.equal(fleet.ended.OwnershipLost or 0, 0, "Sessions that lost their lock")
-	harness.equal(fleet.ended.LeaseExpired or 0, 0, "Sessions that ran out of lease")
 	harness.equal(next(fleet.loadFailed), nil, "Loads that failed")
 end
 
@@ -1401,7 +1406,7 @@ function Fleet.scenarios(size: any): { any }
 			settings = { outages = { { at = size.minutes * 30, duration = 120 } } },
 			check = expectNoLoss,
 		},
-		-- Longer than the lease, so sessions stop accepting changes. Everything they did accept still lands.
+		-- Longer than the expiry, so every lock looks expired when the store returns. Those still playing lose nothing.
 		{
 			name = "a 10 minute outage",
 			settings = {
@@ -1409,8 +1414,22 @@ function Fleet.scenarios(size: any): { any }
 				outages = { { at = size.minutes * 30, duration = 600 } },
 			},
 			check = function(fleet)
-				harness.equal(fleet.lostPoints, 0, "Progress lost")
-				harness.equal(fleet.ended.OwnershipLost or 0, 0, "Sessions that lost their lock")
+				expectNoLoss(fleet)
+				harness.equal(fleet.turnsWithoutSession, 0, "Turns played with no session")
+			end,
+		},
+		-- The servers have room, so everyone who leaves is back within seconds, and a load is waiting on their lock when the
+		-- store returns. The final save has to land first.
+		{
+			name = "a 10 minute outage with everyone coming straight back",
+			settings = {
+				minutes = size.minutes + 10,
+				populationFactor = 0.9,
+				outages = { { at = size.minutes * 30, duration = 600 } },
+			},
+			check = function(fleet)
+				expectNoLoss(fleet)
+				harness.equal(fleet.turnsWithoutSession, 0, "Turns played with no session")
 			end,
 		},
 		{
@@ -1466,7 +1485,6 @@ function Fleet.scenarios(size: any): { any }
 				},
 			},
 			check = function(fleet)
-				harness.equal(fleet.ended.LeaseExpired or 0, 0, "Nobody's lease should run out")
 				harness.equal(fleet.lostPoints, 0, "Progress lost")
 				harness.expect(
 					fleet.saveGaps.largest <= 160,

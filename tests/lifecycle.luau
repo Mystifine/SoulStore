@@ -471,7 +471,7 @@ test("same-server legacy locks are respected until they have gone quiet", functi
 		return loaded ~= nil
 	end, 350)
 	equal(loaded, true)
-	expect(world.scheduler.now >= world.config.LOCK_TAKEOVER_TIME)
+	expect(world.scheduler.now >= world.config.SESSION_EXPIRY)
 	equal(store.data["27"].MetaData.SessionId, soul.SessionToken)
 	equal(soul:GetData({ "Coins" }), 70)
 end)
@@ -730,7 +730,7 @@ test("a leave handler running before SoulStore's still gets its write saved", fu
 	equal(store.data["70"].Coins, 50)
 end)
 
-test("autosaves renew the stored lease, so a long session keeps its record", function()
+test("autosaves keep the lock fresh, so a long session keeps its record", function()
 	local world = newWorld()
 	local player = world:player(68)
 	local soul = world:active("Profiles", player, { Coins = 1 })
@@ -749,56 +749,132 @@ test("autosaves renew the stored lease, so a long session keeps its record", fun
 	equal(world.stores.Profiles.data["68"].MetaData.SessionId, soul.SessionToken)
 end)
 
-test("lease expiry blocks gameplay and freezes progress until owned final recovery", function()
+test("an outage longer than the expiry leaves the session usable, and its next autosave lands", function()
 	local world = newWorld()
 	local player = world:player(40)
 	local soul = world:active("Profiles", player, { Coins = 1 })
 	local store = world.stores.Profiles
 	soul:SetData({ "Coins" }, 100)
 	store.beforeRead = function()
-		error("backend outage exceeds confirmed lease")
+		error("backend outage")
 	end
-	world.scheduler:call(function()
-		world.scheduler.task.wait(301)
-	end)
-	equal(world.soulStore.getSoul("Profiles", nil, player), nil)
-	equal(world.soulStore.hasActiveSession("Profiles", nil, player), false)
-	equal(soul:GetData(), nil)
-	soul:SetData({ "Coins" }, 999)
-	soul:Reconcile({ Extra = true })
-	expect(soul.SessionState ~= "Active")
+	world.scheduler:advance(600)
+	equal(world.soulStore.getSoul("Profiles", nil, player), soul)
+	equal(soul.SessionState, "Active")
+	equal(soul:SetData({ "Coins" }, 200), 200, "Play carries on through the outage")
 	store.beforeRead = nil
-	world.scheduler:runUntil(function()
-		return soul.SessionState == "Ended"
-	end, 40)
-	equal(soul.EndReason, "LeaseExpired")
-	equal(store.data["40"].Coins, 100)
-	equal(store.data["40"].Extra, nil)
-	equal(store.data["40"].MetaData.Locked, false)
-	equal(soul.SessionEndBindableEvent.fireCount, 1)
+	world.scheduler:advance(35)
+	equal(store.data["40"].Coins, 200)
+	equal(store.data["40"].MetaData.SessionId, soul.SessionToken)
+	equal(soul.SessionEndBindableEvent.fireCount, 0)
 end)
 
 test("a final save that outlives an outage reaches the record before the next session", function()
-	local world = newWorld()
-	local player = world:player(41)
-	local soul = world:active("Profiles", player, { Coins = 1 })
-	local store = world.stores.Profiles
-	soul:SetData({ "Coins" }, 100)
-	store.beforeRead = function()
-		error("backend outage")
+	-- Different lengths, so that the two sets of retries line up differently each time
+	for round = 1, 30 do
+		local servers, stores, scheduler = harness.newCluster(2)
+		local player = servers[1]:player(41)
+		local soul = servers[1]:active("Profiles", player, { Coins = 1 })
+		servers[1].offline, servers[2].offline = true, true
+		soul:SetData({ "Coins" }, 100) -- only the final save can carry this
+		scheduler:advance(20 + round % 7)
+		servers[1]:remove(player)
+		scheduler:advance(3)
+
+		local replacement = assert(servers[2].soulStore.new("Profiles", nil, servers[2]:player(41), { Coins = 0 }))
+		local loaded
+		scheduler:spawn(function()
+			loaded = replacement:LoadData()
+		end)
+		scheduler:advance(300 + round * 0.73)
+		servers[1].offline, servers[2].offline = false, false
+		scheduler:runUntil(function()
+			return loaded ~= nil and soul.SessionState == "Ended"
+		end, 120)
+		equal(soul.EndReason, "Saved")
+		equal(replacement:GetData({ "Coins" }), 100, "What the old session held arrives first")
+		equal(stores.Profiles.data["41"].MetaData.SessionId, replacement.SessionToken)
 	end
-	world.scheduler:call(function()
-		world.scheduler.task.wait(301)
-	end)
-	store.beforeRead = nil
-	local replacement = world:active("Profiles", world:player(41))
-	equal(soul.SessionState, "Ended")
-	equal(soul.EndReason, "LeaseExpired")
-	equal(replacement:GetData({ "Coins" }), 100, "What the old session held arrives first")
-	equal(store.data["41"].MetaData.SessionId, replacement.SessionToken)
 end)
 
-test("lease-expired progress never overwrites another session's acquisition", function()
+test("a final save cut off from the store stops once another session takes the record", function()
+	local servers, stores, scheduler = harness.newCluster(2)
+	local player = servers[1]:player(42)
+	local soul = servers[1]:active("Profiles", player, { Coins = 1 })
+	soul:SetData({ "Coins" }, 100)
+	servers[1].offline = true
+	servers[1]:remove(player)
+
+	local replacement = servers[2]:active("Profiles", servers[2]:player(42))
+	equal(soul.SessionState, "Ending", "It is still trying")
+	servers[1].offline = false
+	scheduler:runUntil(function()
+		return soul.SessionState == "Ended"
+	end, 20)
+	equal(soul.EndReason, "OwnershipLost")
+	equal(stores.Profiles.data["42"].Coins, 1, "It did not overwrite the new session")
+	equal(stores.Profiles.data["42"].MetaData.SessionId, replacement.SessionToken)
+end)
+
+test("final saves stop slowing down at a flat 10 seconds", function()
+	local world = newWorld()
+	local player = world:player(43)
+	world:active("Profiles", player, { Coins = 1 })
+	local attempts = {}
+	world.stores.Profiles.beforeRead = function()
+		table.insert(attempts, world.scheduler.now)
+		error("503: temporary outage")
+	end
+	world:remove(player)
+	world.scheduler:advance(300)
+	for index = 2, #attempts do
+		local gap = attempts[index] - attempts[index - 1]
+		expect(gap <= 12, "10 seconds, give or take 20%: " .. gap)
+	end
+	expect(#attempts >= 25, "It keeps trying: " .. #attempts)
+end)
+
+test("a save that hangs no longer blocks the next, and cannot undo it when it comes back", function()
+	local world = newWorld()
+	local soul = world:active("Profiles", world:player(44), { Coins = 1 })
+	local store = world.stores.Profiles
+	local hanging = true
+	store.beforeRead = function()
+		if hanging then
+			hanging = false
+			world.scheduler.task.wait(200)
+		end
+	end
+	soul:SetData({ "Coins" }, 2)
+	world.scheduler:spawn(function()
+		soul:SaveData()
+	end)
+	soul:SetData({ "Coins" }, 3)
+	local saved, reason = world.scheduler:call(function()
+		return soul:SaveData()
+	end)
+	equal(saved, false, "It has only just started")
+	equal(reason, "Saving")
+
+	world.scheduler:advance(60)
+	equal(store.data["44"].Coins, 3, "An autosave got past it")
+	soul:SetData({ "Coins" }, 4)
+	saved = world.scheduler:call(function()
+		return soul:SaveData()
+	end)
+	equal(saved, true)
+
+	world.scheduler:advance(150)
+	local highest = 0
+	for _, write in ipairs(store.writes) do
+		expect(write.data.Coins >= highest, "The one that came back late must not undo a newer save")
+		highest = write.data.Coins
+	end
+	equal(highest, 4)
+	equal(soul.SessionState, "Active")
+end)
+
+test("a session cut off from the store never overwrites the session that took over", function()
 	local servers, stores, scheduler = harness.newCluster(2)
 	local soul = servers[1]:active("Profiles", servers[1]:player(41), { Coins = 1 })
 	soul:SetData({ "Coins" }, 100)
@@ -873,7 +949,7 @@ test("shutdown settles active and pending sessions and rejects new sessions", fu
 	end
 end)
 
-test("shutdown failures are bounded and retain the datastore lock", function()
+test("a shutdown the store never answers keeps its lock, until Roblox ends the server", function()
 	local world = newWorld()
 	local player = world:player(20)
 	local soul = world:active("Profiles", player)
@@ -882,10 +958,33 @@ test("shutdown failures are bounded and retain the datastore lock", function()
 		error("DataStore unavailable")
 	end
 	world:close()
-	expect(world.scheduler.now <= 30, "Shutdown must fit Roblox's close deadline")
 	equal(store.data["20"].MetaData.Locked, true)
 	equal(store.data["20"].MetaData.SessionId, soul.SessionToken)
-	expect(soul.SessionState ~= "Active")
+	equal(soul.SessionState, "Ending", "It was still trying when Roblox ended the server")
+end)
+
+test("a store that comes back late in a shutdown still gets the final saves", function()
+	local world = newWorld()
+	local souls = {}
+	for index = 1, 20 do
+		souls[index] = world:active("Profiles", world:player(900 + index), { Coins = 1 })
+		souls[index]:SetData({ "Coins" }, 5)
+	end
+	local store = world.stores.Profiles
+	local down = true
+	store.beforeRead = function()
+		if down then
+			error("503: temporary outage")
+		end
+	end
+	world.scheduler.task.delay(22, function()
+		down = false
+	end)
+	world:close()
+	for index, soul in ipairs(souls) do
+		equal(soul.EndReason, "Saved")
+		equal(store.data[tostring(900 + index)].Coins, 5)
+	end
 end)
 
 test("regular saves make one attempt and report the failure", function()

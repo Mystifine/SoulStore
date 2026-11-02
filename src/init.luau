@@ -73,7 +73,7 @@ end
 ]]
 function SoulObject:SaveData(sessionEnding: boolean?): (boolean, string?)
 	if sessionEnding then
-		return Session.finish(self, "Saved")
+		return Session.finish(self)
 	end
 	return Session.save(self)
 end
@@ -334,7 +334,7 @@ SoulStore.resetData = Reset.resetData
 	@param scope : string? - The scope for the soul. nil is roblox's default scope.
 	@param player : Player - The player object for the soul
 
-	@return Soul - The soul if it is active with a current lease, nil otherwise
+	@return Soul - The soul if it is active, nil otherwise
 ]]
 function SoulStore.getSoul(datastoreId: string, scope: string?, player: Player): Soul?
 	local soul = SessionCache.get(datastoreId, scope, player)
@@ -441,7 +441,7 @@ function SoulStore.new(datastoreId: string, scope: string?, player: Player, defa
 
 	soulObject._Listeners = {}
 	soulObject._defaultData = defaults
-	soulObject._leaseConfirmedAt = os.clock()
+	soulObject._newestWrite = 0
 	soulObject._warned = {}
 	soulObject._isLoading = false
 	soulObject._isSealing = false
@@ -457,20 +457,17 @@ end
 local function runSchedulerTick()
 	local now = os.clock()
 	local active = 0
-	local expired, due = {}, {}
+	local due = {}
 	for _, soul in ipairs(SessionCache.getAll()) do
 		if soul.SessionState == STATES.Active then
 			active += 1
-			if Session.isLeaseExpired(soul) then
-				table.insert(expired, soul)
-			elseif not soul.IsSaving and now - soul.LastAutoSave >= Config.AUTO_SAVE_INTERVAL then
+			if
+				now - soul.LastAutoSave >= Config.AUTO_SAVE_INTERVAL
+				and (not soul.IsSaving or Session.hasSaveHung(soul))
+			then
 				table.insert(due, soul)
 			end
 		end
-	end
-
-	for _, soul in ipairs(expired) do
-		task.spawn(Session.finish, soul, "LeaseExpired")
 	end
 
 	-- Autosaves wait for budget rather than overflowing the request queue. Final saves are never held back.
@@ -501,7 +498,7 @@ if RunService:IsServer() then
 
 		local tracked = SessionCache.getAll()
 		for _, soul in ipairs(tracked) do
-			task.spawn(Session.finish, soul, "Saved")
+			task.spawn(Session.finish, soul)
 		end
 
 		-- Checks each session's own state, which cannot be missed or drift the way an event or a counter can
@@ -514,15 +511,10 @@ if RunService:IsServer() then
 			return false
 		end
 
-		local deadline = os.clock() + Config.SHUTDOWN_TIMEOUT
-		while os.clock() < deadline and anyUnsettled() do
+		-- Keeps the server up until every session has settled, for as long as Roblox allows. Whatever has not saved by
+		-- then keeps its lock, which expires.
+		while anyUnsettled() do
 			task.wait(0.1)
-		end
-
-		-- Whatever is left keeps its lock and recovers when the lock expires.
-		for _, soul in ipairs(tracked) do
-			local state = if soul.SessionState == STATES.Pulling then STATES.Cancelled else STATES.Ended
-			Session.settle(soul, state, "ShutdownTimeout")
 		end
 	end)
 
@@ -541,7 +533,7 @@ if RunService:IsServer() then
 			if soul.Player == player then
 				-- Deferred, so every other leave handler has run first, in whatever order Roblox ran them, and what they
 				-- wrote is in the final save. One thread per store: a stuck store must not hold up the others.
-				task.defer(Session.finish, soul, "Saved")
+				task.defer(Session.finish, soul)
 			end
 		end
 	end)

@@ -8,7 +8,7 @@
 	attribute to say what to run: "Main", then "Locks1" to "Locks8", then "Leave", which kicks the player. Then "Shutdown"
 	and stop Play to leave a session for BindToClose to save, and "Verify" in a new Play to see that it landed.
 
-	Timing runs on short settings through Config, because a real takeover would otherwise take 90 seconds.
+	Timing runs on short settings through Config, because a real takeover would otherwise take 2 minutes.
 ]]
 
 local PHASE = (script:GetAttribute("Phase") or "Main") :: string
@@ -514,10 +514,9 @@ end
 local function lockTests()
 	local defaults = {
 		AUTO_SAVE_INTERVAL = Config.AUTO_SAVE_INTERVAL,
-		SESSION_LOCK_EXPIRY = Config.SESSION_LOCK_EXPIRY,
-		LOCK_TAKEOVER_TIME = Config.LOCK_TAKEOVER_TIME,
+		SESSION_EXPIRY = Config.SESSION_EXPIRY,
+		TAKEOVER_DELAY = Config.TAKEOVER_DELAY,
 		LOAD_ATTEMPT_INTERVAL = Config.LOAD_ATTEMPT_INTERVAL,
-		MAX_RETRY_INTERVAL = Config.MAX_RETRY_INTERVAL,
 	}
 	local function restore()
 		for name, value in pairs(defaults) do
@@ -535,13 +534,16 @@ local function lockTests()
 
 	step("a lock that stops changing is taken over", function()
 		fresh()
-		Config.LOCK_TAKEOVER_TIME = 10
+		Config.SESSION_EXPIRY = 10
+		Config.TAKEOVER_DELAY = 3
 		foreignLock(5)
+		local _, written = record()
+		local skew = os.time() - written.UpdatedTime / 1000
 		local started = os.clock()
 		local soul = load({ Coins = 0 })
 		local waited = os.clock() - started
-		note(string.format("waited %.1f seconds with a takeover time of 10", waited))
-		check("it waited out the takeover time", waited >= 9.5, waited)
+		note(string.format("waited %.1f seconds with an expiry of 10, and a clock %.1f seconds off", waited, skew))
+		check("it waited until the lock expired", waited >= math.max(3, 10 - skew) - 1, waited)
 		check("and not much longer", waited < 16, waited)
 		equal("it has the record's data", soul.Data.Coins, 7)
 		equal("the record is its own", record().MetaData.SessionId, soul.SessionToken)
@@ -552,7 +554,8 @@ local function lockTests()
 
 	step("a lock that keeps changing is not taken over", function()
 		fresh()
-		Config.LOCK_TAKEOVER_TIME = 8
+		Config.SESSION_EXPIRY = 8
+		Config.TAKEOVER_DELAY = 6 -- longer than the owner's writes are apart, whatever this machine's clock says
 		foreignLock(5)
 		local writing = true
 		task.spawn(function()
@@ -576,7 +579,7 @@ local function lockTests()
 			state.at = os.clock() - started
 		end)
 		task.wait(16)
-		equal("it is still waiting, long past the takeover time", soul.SessionState, "Pulling")
+		equal("it is still waiting, long past the expiry", soul.SessionState, "Pulling")
 		equal("the owner still has the record", record().MetaData.SessionId, "another session")
 		writing = false
 		local deadline = os.clock() + 25
@@ -585,16 +588,15 @@ local function lockTests()
 		end
 		note(string.format("loaded %.1f seconds in, after the owner stopped at about 16", state.at or -1))
 		equal("once the owner stops, it loads", state.loaded, true)
-		check("after the takeover time", (state.at or 0) >= 16 + 7, state.at)
+		check("after the delay", (state.at or 0) >= 16 + 5, state.at)
 		restore()
 		Config.LOAD_ATTEMPT_INTERVAL = 2
 	end)
 
 	step("a lock older than the expiry, by Roblox's own timestamp", function()
 		fresh()
-		Config.LOCK_TAKEOVER_TIME = math.huge
-		Config.SESSION_LOCK_EXPIRY = 15
-		Config.MAX_RETRY_INTERVAL = 4 -- the time an old lock is watched for is half as long again as this
+		Config.SESSION_EXPIRY = 15
+		Config.TAKEOVER_DELAY = 3
 		foreignLock(5)
 		local _, info = record()
 		local skew = os.time() - info.UpdatedTime / 1000
@@ -613,8 +615,8 @@ local function lockTests()
 
 	step("a lock already old when the load finds it is still watched first", function()
 		fresh()
-		Config.SESSION_LOCK_EXPIRY = 1
-		Config.MAX_RETRY_INTERVAL = 6 -- so the watch takes 9 seconds
+		Config.SESSION_EXPIRY = 1
+		Config.TAKEOVER_DELAY = 9
 		foreignLock(5)
 		local _, info = record()
 		local skew = os.time() - info.UpdatedTime / 1000
@@ -672,24 +674,24 @@ local function lockTests()
 		finishCurrent()
 	end)
 
-	step("a session that cannot confirm a write stops accepting changes", function()
+	step("a session with no confirmed write keeps accepting changes", function()
 		fresh()
 		Config.AUTO_SAVE_INTERVAL = 1000
-		Config.SESSION_LOCK_EXPIRY = 5
+		Config.SESSION_EXPIRY = 5
 		local soul = load({ Coins = 1 })
 		soul:SetData({ "Coins" }, 2)
-		local state, why
-		soul.SessionEndBindableEvent.Event:Connect(function(...)
-			state, why = ...
+		local ended = false
+		soul.SessionEndBindableEvent.Event:Connect(function()
+			ended = true
 		end)
 		task.wait(8)
-		equal("gameplay is refused", soul:GetData(), nil)
-		equal("the session ended", state, "Ended")
-		equal("with the reason", why, "LeaseExpired")
+		equal("it is still active", soul.SessionState, "Active")
+		equal("the event has not fired", ended, false)
+		equal("gameplay still works", soul:GetData({ "Coins" }), 2)
+		finishCurrent()
 		local value = record()
 		equal("its progress was saved", value.Coins, 2)
 		equal("and the record released", value.MetaData.Locked, false)
-		current = nil
 		restore()
 		Config.LOAD_ATTEMPT_INTERVAL = 2
 	end)

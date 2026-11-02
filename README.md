@@ -8,7 +8,7 @@ A Roblox player data module with per-session ownership, automatic saving, and pa
 - Pulling, Active, Ending, and terminal states keep pending or dying sessions out of gameplay.
 - Serialized saves commit final data and release its lock atomically.
 - Load/save hooks, default reconciliation, and nested change listeners.
-- PlayerRemoving saves and bounded shutdown finalization.
+- PlayerRemoving saves, and a shutdown that keeps trying for as long as Roblox allows.
 - Saves that lose nothing, whatever shape your tables are in, and autosaves that stay fair when the budget is tight.
 - Tested as a whole game: simulated servers of up to 200 players, under load and failure, and on real data stores. See [Load Testing](docs/guides/load-testing.md).
 
@@ -41,7 +41,7 @@ end)
 
 `getSoul(datastoreId, scope, player)` returns only an Active soul for that exact Player instance. A rejoin gets a fresh object and waits for the old session's final save; it never plays on defaults while a lock is held.
 
-Deploy this lifecycle update by draining old servers. The save format is unchanged, but old pending writes cannot enforce GUID session ownership. Shutdown retries within its time budget; network failures or crashes may still require stale-lock recovery.
+Deploy this lifecycle update by draining old servers. The save format is unchanged, but old pending writes cannot enforce GUID session ownership. Shutdown retries for as long as Roblox allows; network failures or crashes may still require stale-lock recovery.
 
 ## Documentation
 

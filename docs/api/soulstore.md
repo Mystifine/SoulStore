@@ -28,7 +28,7 @@ SoulStore.getEndingSoul(datastoreId: string, scope: string?, player: Player) -> 
 SoulStore.hasActiveSession(datastoreId: string, scope: string?, player: Player) -> boolean
 ```
 
-All lookups use the exact Player instance, DataStore, and scope. `getSoul` returns only an Active soul whose confirmed lease has not expired; a session stops being Active as soon as its player leaves. Pending and ending helpers are for inspection; their data is unavailable for gameplay. Old-session cleanup cannot remove a new Player instance's soul.
+All lookups use the exact Player instance, DataStore, and scope. `getSoul` returns only an Active soul; a session stops being Active as soon as its player leaves. Pending and ending helpers are for inspection; their data is unavailable for gameplay. Old-session cleanup cannot remove a new Player instance's soul.
 
 ## `SoulStore.playerExists()`
 

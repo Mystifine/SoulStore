@@ -17,7 +17,7 @@ export type SoulMetaData = {
 |---|---|
 | `Locked` | A session owns the key. |
 | `SaveId` | Save counter derived from the persisted record when saving. |
-| `LastUpdate` | Unix timestamp refreshed by acquisition and saves; used for crash recovery. |
+| `LastUpdate` | Unix timestamp refreshed by acquisition and saves. Lock age comes from Roblox's own timestamp for the key, so this is only a fallback. |
 | `SessionId` | Opaque GUID session token, or `""` when unlocked. |
 
 `MetaData` is reserved. `game.JobId` identifies a server, not its individual player sessions.
@@ -52,7 +52,7 @@ Pulling is pending acquisition or initialization. Active permits gameplay and au
 
 `LoadData` and `SaveData` return `(boolean, string?)`. Terminal state alone does not prove a confirmed final save.
 
-Gameplay methods also check the last confirmed lease age. Prefer `getSoul` over testing the state string alone. An expired lease blocks gameplay immediately, then background finalization ends the session with `LeaseExpired` if its final write succeeds, or `OwnershipLost` if another session has taken over. No automatic player kick occurs.
+An outage does not end a session: it stays Active and keeps accepting changes, and its next save lands once the store is back. If another session takes the record, the next write is refused and the session ends with `OwnershipLost`. No automatic player kick occurs.
 
 ## `SoulStore`
 

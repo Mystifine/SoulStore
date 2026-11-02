@@ -6,7 +6,7 @@ Require SoulStore only from server code.
 
 For Rojo, clone the repository, run `rojo build -o SoulStore.rbxlx`, and copy the SoulStore module from ServerScriptService into your project.
 
-For Wally, add `soulstore = "mystifine/soulstore@2.0.0"` to your project's server dependencies, then run `wally install`. If your game already uses 1.x, read [Migrating from 1.x](guides/migrating.md) first, because some arguments changed.
+For Wally, add `soulstore = "mystifine/soulstore@2.0.1"` to your project's server dependencies, then run `wally install`. If your game already uses 1.x, read [Migrating from 1.x](guides/migrating.md) first, because some arguments changed.
 
 ```lua
 local SoulStore = require(path.to.SoulStore)
@@ -110,9 +110,9 @@ For later changes, have trusted server gameplay call `SetData` and send the resu
 
 `LoadData` returns `true` only for Active data. Failed loads, pending locks, and terminal sessions must not enter gameplay. Do not publish a loaded marker, send a default profile to the client, or grant rewards before successful loading.
 
-`getSoul` returns only usable Active sessions, checking the confirmed lease age. Use `getPendingSoul` and `getEndingSoul` for inspection. `SessionState` describes the lifecycle; `LoadState` is a compatibility status. An expired lease can deny gameplay access before background finalization changes the lifecycle state.
+`getSoul` returns only Active sessions. Use `getPendingSoul` and `getEndingSoul` for inspection. `SessionState` describes the lifecycle; `LoadState` is a compatibility status.
 
-React to `SessionEndBindableEvent` if your game should disconnect or move a player out of gameplay after lease expiry or ownership loss. SoulStore does not kick players automatically. Check `EndReason` for outcomes such as `Saved`, `LeaseExpired`, `OwnershipLost`, `Cancelled`, `AcquisitionUncertain`, `SaveRejected`, `CorruptData`, `HookFailed`, `DataStoreError`, `InternalError`, or `ShutdownTimeout`.
+React to `SessionEndBindableEvent` if your game should disconnect or move a player out of gameplay after ownership loss. SoulStore does not kick players automatically. Check `EndReason` for outcomes such as `Saved`, `OwnershipLost`, `Cancelled`, `AcquisitionUncertain`, `SaveRejected`, `CorruptData`, `HookFailed`, `DataStoreError`, or `InternalError`.
 
 Check the boolean result of manual `SaveData` calls when a confirmed write matters. A normal save makes one attempt, so `false` means it did not land; try again or wait for the next autosave. Session completion also includes cancellation and ownership loss, so a terminal event alone is not proof of a successful final save.
 
@@ -126,16 +126,17 @@ Edit `src/Config.luau` before deployment.
 | `TRACE_BACK_MESSAGE` | `false` | Append stack traces to diagnostics. |
 | `LOAD_ATTEMPT_INTERVAL` | `6` seconds | Delay between looks at a lock that a load is waiting for. |
 | `RETRY_INTERVAL` | `2` seconds | First delay before a failed load or final save retries. |
-| `MAX_RETRY_INTERVAL` | `30` seconds | Longest delay that retries slow down to after repeated failures. |
+| `MAX_RETRY_INTERVAL` | `30` seconds | Longest delay that failed loads slow down to after repeated failures. |
+| `MAX_FINAL_SAVE_RETRY_INTERVAL` | `10` seconds | Longest delay between final save attempts. Shorter than loads, so a final save reaches the store first. |
 | `AUTO_SAVE_INTERVAL` | `30` seconds | Background save scheduling interval. |
-| `SESSION_LOCK_EXPIRY` | `300` seconds | How long a session keeps working without a confirmed write. A lock older than this takes less waiting for. |
-| `LOCK_TAKEOVER_TIME` | `90` seconds | How long a load watches a lock that never changes before taking it over. Three autosave intervals. |
+| `SESSION_EXPIRY` | `120` seconds | How long a lock can go without a write before another session may take it. |
+| `TAKEOVER_DELAY` | `15` seconds | How long a load waits on a lock past the expiry, taking it only if it has not changed. Set from `MAX_FINAL_SAVE_RETRY_INTERVAL`, so it is longer than a final save's slowest retry. |
+| `HUNG_SAVE_TIME` | `60` seconds | How long a save can run before it no longer holds up the next one. |
 | `WRITER_WAIT_TIMEOUT` | `10` seconds | Longest a save waits behind one already running. |
 | `ACQUISITION_RECOVERY_TIMEOUT` | `30` seconds | Retry window for releasing a cancelled acquisition with an uncertain response. |
-| `SHUTDOWN_TIMEOUT` | `25` seconds | Maximum time spent waiting for shutdown settlement. |
 
-The shared autosave scheduler checks Active souls once per second. Each player's autosaves are spread over the whole interval, a backlog is cleared at no more than twice the steady rate, and when the request budget cannot cover everyone, whoever has waited longest goes first. Normal saves make one attempt. Load and final-save retry delays increase after consecutive failures and are capped at `MAX_RETRY_INTERVAL`, except during shutdown, when final saves stop slowing down at three times `RETRY_INTERVAL`. Each wait varies by 20% either way, so players and servers do not retry at the same moment.
+The shared autosave scheduler checks Active souls once per second. Each player's autosaves are spread over the whole interval, a backlog is cleared at no more than twice the steady rate, and when the request budget cannot cover everyone, whoever has waited longest goes first. Normal saves make one attempt. Failed loads slow down to `MAX_RETRY_INTERVAL` and final saves to `MAX_FINAL_SAVE_RETRY_INTERVAL`, except during shutdown, when both stop slowing down at three times `RETRY_INTERVAL`. Each wait varies by 20% either way, so players and servers do not retry at the same moment.
 
-Keep expiry comfortably longer than autosaves and expected request delays. Shutdown uses a bounded finalization budget of about 25 seconds and cannot guarantee successful writes during an outage.
+Keep the expiry comfortably longer than autosaves and expected request delays. Shutdown keeps the server up until every session has settled, for as long as Roblox allows, which is 30 seconds. It cannot guarantee successful writes during an outage.
 
 Before deploying this lifecycle update, drain old servers. Existing data does not need migration, but older pending writes cannot enforce the new per-session token model. See [Session Locking](guides/session-locking.md), and [Migrating from 1.x](guides/migrating.md) if your game already uses SoulStore.

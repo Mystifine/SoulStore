@@ -18,7 +18,7 @@ This page is for anyone changing SoulStore itself.
 
 ## The rules
 
-**One owner per record.** Each session gets its own token, stored in `MetaData.SessionId`. A load may claim a record that is unlocked, already holds its own token, or has a lock it has watched not change for `LOCK_TAKEOVER_TIME`, or for less if the lock is older than `SESSION_LOCK_EXPIRY`. A save only asks whether the token is still its own. `Locked` and expiry never decide a save.
+**One owner per record.** Each session gets its own token, stored in `MetaData.SessionId`. A load may claim a record that is unlocked, already holds its own token, or has a lock past `SESSION_EXPIRY` that it has seen unchanged for `TAKEOVER_DELAY`. A lock that looks newer is still taken after watching it for all of `SESSION_EXPIRY`, in case this server's clock is slow. A save only asks whether the token is still its own. `Locked` and expiry never decide a save.
 
 **One lifecycle.** `SessionState` is the only state that decides anything. Only an Active session can read or write.
 
@@ -27,13 +27,13 @@ Pulling -> Active -> Ending -> Ended
 Pulling -> Cancelled
 ```
 
-**One writer at a time.** `IsSaving` makes saves queue behind each other, so two writes for a session never race.
+**One writer at a time.** `IsSaving` makes saves queue behind each other, so two writes for a session do not normally race. A save running for `HUNG_SAVE_TIME` no longer holds up the next, and only the newest write may land, so one that comes back late cannot undo a newer save.
 
-**A lease.** A session with no confirmed write for `SESSION_LOCK_EXPIRY` stops accepting changes and attempts its final save, so a player does not keep playing for long on progress that cannot be saved. Another server may claim the record sooner than that, after `LOCK_TAKEOVER_TIME`, because a player waiting elsewhere is not playing on this session. The token check stops the old session's writes whichever comes first.
+**An outage does not end a session.** It stays Active and keeps accepting changes, and its next save lands once the store is back. A session only ends when its player leaves, its server shuts down, or a write finds that another session has taken the record. The token check is what stops an old session overwriting anything.
 
 **Fail closed.** Refuse rather than guess: corrupt data is never replaced, a failed hook never writes, and a player waiting on a lock never plays on defaults.
 
-**One clock for each job.** `os.clock` measures anything local, such as leases, autosaves and how long a lock has gone unchanged, because it cannot jump. `os.time` only compares against Roblox's `UpdatedTime`, and is written as `LastUpdate` for older servers to read.
+**One clock for each job.** `os.clock` measures anything local, such as autosaves and how long a lock has gone unchanged, because it cannot jump. `os.time` only compares against Roblox's `UpdatedTime`, and is written as `LastUpdate` for older servers to read.
 
 **A table's shape is decided before Roblox sees it.** Roblox stores a table with a length as an array that stops there, losing every other key. So a save never hands Roblox a table that would lose anything, `SetData` refuses to create one, and copies use `table.clone`, because rebuilding an array key by key can change its length. See `DataValidator.removeUnstorable`.
 
@@ -46,8 +46,8 @@ Pulling -> Cancelled
 | Result | What happens next |
 |---|---|
 | Claimed | `finishAcquisition` runs `OnLoad`, then makes the session Active. If the player left in the meantime, it releases the lock instead. |
-| Locked by someone else | Waits `LOAD_ATTEMPT_INTERVAL` and tries again. Takes the lock over once it has not changed for `LOCK_TAKEOVER_TIME`, or for `MAX_RETRY_INTERVAL` x 1.5 if it is older than the lease. That is still longer than a final save's slowest retry, so an owner that outlived an outage reaches the record first. |
-| Request failed | Waits with a growing delay and tries again, unless the error cannot be fixed by retrying. Restarts the takeover wait. |
+| Locked by someone else | Waits `LOAD_ATTEMPT_INTERVAL` and tries again. Takes the lock over once it is past `SESSION_EXPIRY` and has looked the same for `TAKEOVER_DELAY`. That is longer than a final save's slowest retry, so an owner that outlived an outage reaches the record first. |
+| Request failed | Waits with a growing delay and tries again, unless the error cannot be fixed by retrying. Restarts `TAKEOVER_DELAY`. |
 | Corrupt record | Stops without touching it. |
 | Player left | Cancels. If an earlier attempt may have taken the lock, it tries to release it for up to `ACQUISITION_RECOVERY_TIMEOUT`. |
 
@@ -65,7 +65,7 @@ Pulling -> Cancelled
 4. Write the data and unlock in the same `UpdateAsync`.
 5. Retry until the write lands, another session owns the record, or an error occurs that retrying cannot fix. In that last case the lock is released without the final data, so the player can rejoin on their last good save.
 
-Retries start at `RETRY_INTERVAL` and grow to `MAX_RETRY_INTERVAL`. During shutdown they stop growing at three times `RETRY_INTERVAL`, because the server only has about 30 seconds.
+Retries start at `RETRY_INTERVAL` and grow to `MAX_FINAL_SAVE_RETRY_INTERVAL`. During shutdown they stop growing at three times `RETRY_INTERVAL`, because the server only has about 30 seconds.
 
 `writeRecord` is the only place a save reaches the data store. Roblox may run a transform more than once, so it sets every metadata field from the record it was given rather than adding to a copy.
 

@@ -2,6 +2,10 @@
 
 The save format is unchanged, so existing saves load without a migration. Drain old servers when you release, because old pending writes cannot enforce the new per-session ownership.
 
+## From 2.0.0 to 2.0.1
+
+An outage no longer ends a session, so the end reasons `LeaseExpired` and `ShutdownTimeout` are gone. `SESSION_EXPIRY` replaces `SESSION_LOCK_EXPIRY` and `LOCK_TAKEOVER_TIME`, and `SHUTDOWN_TIMEOUT` is gone, because shutdown now runs until every session has settled or Roblox ends the server.
+
 ## Arguments that changed
 
 `scope` is now the second argument. Pass `nil` to keep using the same data as before.
@@ -24,7 +28,7 @@ Every other function and method keeps its name and arguments.
 | `LoadData()` | Returns `true`, or `false` and a reason. Stops on corrupt data or an error retrying cannot fix, instead of retrying forever. |
 | `SaveData()` | Makes one attempt and returns the result. In 1.x it retried until the write landed, which blocked the caller. |
 | `SaveData(true)` | Also returns the result. Retries with growing delays. |
-| `GetData`, `SetData`, `Reconcile` | Refused once the session starts ending or its lease expires. Check for `nil`. |
+| `GetData`, `SetData`, `Reconcile` | Refused once the session starts ending. Check for `nil`. |
 | `SetData` | Refuses values a data store cannot hold, NaN, and `MetaData` paths, and writes a data store would change or lose, such as a number key on a dictionary. Use string keys for number-like ids: `tostring(level)`. See [What can be saved](data-operations.md#what-can-be-saved). A path through a non-table returns `nil` instead of throwing. |
 | Leaving | SoulStore's own final save now runs after every other `PlayerRemoving` handler, so what they write is saved. See [When a player leaves](lifecycle-hooks.md#when-a-player-leaves). |
 | `Reconcile` | Copies the tables it inserts, so players never share a template's table. Only fills string keys: in 1.x a saved `{ 9 }` with a template of `{ 1, 2, 3 }` became `{ 9, 2, 3 }`, and now it stays `{ 9 }`. If you add a new entry to a default array and every player should get it, add it in `SetOnLoad`. |
@@ -33,7 +37,7 @@ Every other function and method keeps its name and arguments.
 | `SetOnSave` | The hook must not yield. If it errors or yields, that copy is not written. |
 | `getSoul` | Only returns an Active session. |
 | `new` | Returns `nil` during shutdown, while the same Player instance's previous session is still ending, or for defaults that could not be saved. |
-| Waiting for a lock | A lock that has not changed for 90 seconds is taken over, instead of waiting out the full 5 minutes. One already older than 5 minutes is watched for 45 seconds rather than taken at once, so an owner that outlived an outage can land its final save first. A healthy session keeps writing, so this does not affect it. |
+| Waiting for a lock | A lock with no write for 2 minutes can be taken over, instead of waiting out the full 5 minutes. A load first waits 15 seconds to see that it does not change, so an owner that outlived an outage can land its final save first. A healthy session keeps writing, so this does not affect it. |
 | Saving from a hook | `SaveData` and `LoadData` called inside a hook return `false, "CalledFromHook"`. See [Lifecycle Hooks](lifecycle-hooks.md). |
 | Saving odd tables | In 1.x a table with both `[1]` and string keys lost its string keys when saved, and at the top of a save that lost everything. Now nothing is lost: the number keys are saved as strings, with a warning. An array with gaps now always comes back whole. |
 
@@ -62,11 +66,11 @@ end
 
 **Make sure save hooks do not yield.** A yielding `SetOnSave` hook now fails every normal save. A final save writes the session without it.
 
-**React when a session ends during play.** If a session loses its record or its lease expires, SoulStore stops accepting changes but does not kick the player. Connect to `SessionEndBindableEvent`, or the player keeps playing with progress that cannot be saved:
+**React when a session ends during play.** If a session loses its record, SoulStore stops accepting changes but does not kick the player. Connect to `SessionEndBindableEvent`, or the player keeps playing with progress that cannot be saved:
 
 ```lua
 soul.SessionEndBindableEvent.Event:Connect(function(_state, reason)
-    if player.Parent == Players and (reason == "OwnershipLost" or reason == "LeaseExpired") then
+    if player.Parent == Players and reason == "OwnershipLost" then
         player:Kick("Your data session ended. Please rejoin.")
     end
 end)

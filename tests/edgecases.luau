@@ -1097,7 +1097,7 @@ test("a second server waits for the first to release, then sees its latest save"
 	equal(stores.Profiles.data["40"].MetaData.SessionId, arriving.SessionToken)
 end)
 
-test("a crashed server's record is taken over well before the lock expires", function()
+test("a crashed server's record is taken over once its lock expires", function()
 	local servers, stores, scheduler = newCluster(2)
 	local soul = servers[1]:active("Profiles", servers[1]:player(41), { Coins = 1 })
 	soul:SetData({ "Coins" }, 50)
@@ -1110,11 +1110,11 @@ test("a crashed server's record is taken over well before the lock expires", fun
 	local state = load(servers[2], arriving)
 	scheduler:runUntil(function()
 		return state.done
-	end, 120)
+	end, 160)
 	equal(state.loaded, true)
 	local waited = scheduler.now - started
 	expect(waited >= 85, "It waited long enough to rule out a live owner: " .. waited)
-	expect(waited < 120, "It did not wait out the full expiry: " .. waited)
+	expect(waited < 130, "It waited no longer than the expiry: " .. waited)
 	equal(arriving.Data.Coins, 50, "It sees the last save that landed")
 	equal(stores.Profiles.data["41"].MetaData.SessionId, arriving.SessionToken)
 end)
@@ -1154,13 +1154,13 @@ test("a server that crashes while another waits is taken over after its last wri
 	local crashedAt = scheduler.now
 	scheduler:runUntil(function()
 		return state.done
-	end, 120)
+	end, 160)
 	equal(state.loaded, true)
-	expect(scheduler.now - crashedAt < 110, "Watching earlier versions of the lock must not cost extra")
+	expect(scheduler.now - crashedAt < 135, "Watching earlier versions of the lock must not cost extra")
 	equal(arriving.Data.Coins, 2)
 end)
 
-test("an outage cannot make a live owner look dead", function()
+test("a live owner that writes soon after an outage keeps its record", function()
 	local servers, stores, scheduler = newCluster(2)
 	local soul = servers[1]:active("Profiles", servers[1]:player(43), { Coins = 1 })
 
@@ -1168,7 +1168,7 @@ test("an outage cannot make a live owner look dead", function()
 	local state = load(servers[2], arriving)
 	scheduler:advance(20)
 
-	-- Nobody can reach the store, for longer than a takeover takes but shorter than a lease
+	-- Nobody can reach the store, for longer than the expiry
 	servers[1].offline, servers[2].offline = true, true
 	scheduler:advance(200)
 	servers[1].offline, servers[2].offline = false, false
@@ -1179,7 +1179,26 @@ test("an outage cannot make a live owner look dead", function()
 	equal(stores.Profiles.data["43"].MetaData.SessionId, soul.SessionToken)
 end)
 
-test("what a load saw before an outage does not count, even if its server recovers first", function()
+test("what a load saw before an outage does not count towards the delay", function()
+	local servers, stores, scheduler = newCluster(2)
+	local soul = servers[1]:active("Profiles", servers[1]:player(45), { Coins = 1 })
+
+	local arriving = assert(servers[2].soulStore.new("Profiles", nil, servers[2]:player(45), { Coins = 0 }))
+	local state = load(servers[2], arriving)
+	scheduler:advance(10)
+
+	servers[1].offline, servers[2].offline = true, true
+	scheduler:advance(200)
+	local requests = stores.Profiles.calls
+	servers[2].offline = false
+	scheduler:runUntil(function()
+		return stores.Profiles.calls > requests
+	end, 60)
+	equal(state.done, false, "A failed request says nothing about the lock, so its first look starts the delay")
+	equal(stores.Profiles.data["45"].MetaData.SessionId, soul.SessionToken)
+end)
+
+test("a load whose server recovers first takes an expired lock after the delay, and the owner finds out", function()
 	local servers, stores, scheduler = newCluster(2)
 	local soul = servers[1]:active("Profiles", servers[1]:player(44), { Coins = 1 })
 
@@ -1190,13 +1209,19 @@ test("what a load saw before an outage does not count, even if its server recove
 	servers[1].offline, servers[2].offline = true, true
 	scheduler:advance(100)
 	servers[2].offline = false
-	scheduler:advance(40)
-	equal(state.done, false, "A hundred seconds of failed requests say nothing about the lock")
+	scheduler:advance(5)
+	equal(state.done, false, "The lock has not expired yet")
+	scheduler:runUntil(function()
+		return state.done
+	end, 60)
+	equal(state.loaded, true)
+
 	servers[1].offline = false
-	scheduler:advance(40)
-	equal(state.done, false, "The owner is back, and writing")
-	equal(soul.SessionState, "Active")
-	equal(stores.Profiles.data["44"].MetaData.SessionId, soul.SessionToken)
+	scheduler:runUntil(function()
+		return soul.SessionState == "Ended"
+	end, 40)
+	equal(soul.EndReason, "OwnershipLost")
+	equal(stores.Profiles.data["44"].MetaData.SessionId, arriving.SessionToken)
 end)
 
 test("an owner cut off from the store loses the record safely when it is taken over", function()
@@ -1324,10 +1349,10 @@ test("a dead lock's age comes from Roblox's timestamp, not its writer's clock", 
 	local state = load(servers[2], arriving)
 	scheduler:runUntil(function()
 		return state.done
-	end, 120)
+	end, 160)
 	equal(state.loaded, true)
 	local waited = scheduler.now - began
-	expect(waited >= 90, "Its LastUpdate looks 400 seconds old, but the lock is new, yet it waited only " .. waited)
+	expect(waited >= 115, "Its LastUpdate looks 400 seconds old, but the lock is new, yet it waited only " .. waited)
 end)
 
 test("a reader with a slow clock still takes over a dead lock in the usual time", function()
@@ -1339,30 +1364,28 @@ test("a reader with a slow clock still takes over a dead lock in the usual time"
 	local state = load(servers[2], arriving)
 	scheduler:runUntil(function()
 		return state.done
-	end, 120)
+	end, 160)
 	equal(state.loaded, true)
 end)
 
-test("a reader with a fast clock cannot take a lock its owner is still writing", function()
-	local servers, _, scheduler = newCluster(2, { clockOffsets = { 0, 400 } })
+test("a reader with a fast clock can take a live lock after the delay, and the owner finds out", function()
+	local servers, stores, scheduler = newCluster(2, { clockOffsets = { 0, 400 } })
 	local soul = servers[1]:active("Profiles", servers[1]:player(52), { Coins = 1 })
 
 	local arriving = assert(servers[2].soulStore.new("Profiles", nil, servers[2]:player(52), { Coins = 0 }))
 	local state = load(servers[2], arriving)
-	scheduler:advance(240)
-	equal(state.done, false, "It reads the lock as old, but sees it change")
-	equal(soul.SessionState, "Active")
-
-	soul:SetData({ "Coins" }, 500)
-	equal(save(servers[1], soul, true), true)
 	scheduler:runUntil(function()
 		return state.done
-	end, 10)
+	end, 60)
 	equal(state.loaded, true)
-	equal(arriving:GetData({ "Coins" }), 500)
+	scheduler:runUntil(function()
+		return soul.SessionState == "Ended"
+	end, 40)
+	equal(soul.EndReason, "OwnershipLost", "Its next write is refused, so nothing is overwritten")
+	equal(stores.Profiles.data["52"].MetaData.SessionId, arriving.SessionToken)
 end)
 
-test("an old lock is still watched before it is taken, for less time than a recent one", function()
+test("an old lock only waits out the delay, and a recent one waits until it expires", function()
 	local function waitFor(lockAge)
 		local servers, stores, scheduler = newCluster(2)
 		local world = servers[1]
@@ -1382,9 +1405,9 @@ test("an old lock is still watched before it is taken, for less time than a rece
 	end
 
 	local recent = waitFor(5)
-	expect(recent >= 90 and recent <= 100, "A recent lock waits out the takeover time: " .. recent)
+	expect(recent >= 110 and recent <= 125, "A recent lock waits until it expires: " .. recent)
 	local old = waitFor(400)
-	expect(old >= 45 and old <= 55, "An old lock has its own wait: " .. old)
+	expect(old >= 15 and old <= 25, "An old lock only waits out the delay: " .. old)
 end)
 
 test("a server clock that jumps forward does not end its sessions", function()
@@ -1437,7 +1460,7 @@ test("everyone gets their turn when there is budget for only one autosave a seco
 	end
 	world.scheduler:advance(200)
 	for userId = 1, 100 do
-		equal(souls[userId].SessionState, "Active", "Nobody's lease runs out")
+		equal(souls[userId].SessionState, "Active", "Nobody's session ends")
 	end
 end)
 
@@ -1565,7 +1588,7 @@ test("a player leaving during shutdown writes once", function()
 	equal(store.maxActive, 1)
 end)
 
-test("a request that never returns cannot hold shutdown past its limit", function()
+test("a request that never returns holds shutdown only until Roblox ends the server", function()
 	local world = newWorld()
 	local soul = world:active("Profiles", world:player(72), { Coins = 1 })
 	local store = world.stores.Profiles
@@ -1573,8 +1596,8 @@ test("a request that never returns cannot hold shutdown past its limit", functio
 		coroutine.yield({ event = true })
 	end
 	world:close()
-	expect(world.scheduler.now <= 30, "Must fit inside Roblox's 30 seconds")
-	equal(soul.EndReason, "ShutdownTimeout")
+	equal(soul.SessionState, "Ending")
+	equal(store.data["72"].MetaData.SessionId, soul.SessionToken, "The lock recovers when it expires")
 end)
 
 test("many players on a slow store are all saved inside the shutdown window", function()
@@ -1606,9 +1629,9 @@ test("final saves keep retrying quickly during shutdown", function()
 		error("503: temporary outage")
 	end
 	world:close()
-	-- 2, 3, 4.5, 6, 6 seconds apart. Were they to keep slowing down, the sixth would miss the window.
+	-- 2, 3, 4.5, 6, 6, 6 seconds apart. Were they to keep slowing down, the last ones would miss Roblox's 30 seconds.
 	local average = attempts / players
-	expect(average >= 5.6 and average <= 7, "Attempts each inside the window: " .. average)
+	expect(average >= 6 and average <= 8, "Attempts each inside the window: " .. average)
 end)
 
 test("a change arriving after shutdown starts is refused rather than silently lost", function()
@@ -1737,7 +1760,7 @@ test("a game can kick the player when a session ends during play", function()
 	local player = world:player(84)
 	local soul = world:active("Profiles", player, { Coins = 1 })
 	soul.SessionEndBindableEvent.Event:Connect(function(_state, why)
-		if player.Parent == world.players and (why == "OwnershipLost" or why == "LeaseExpired") then
+		if player.Parent == world.players and why == "OwnershipLost" then
 			player:Kick("Your data session ended. Please rejoin.")
 		end
 	end)
@@ -2075,7 +2098,7 @@ test("metadata with odd values does not stop a load", function()
 		local state = load(world, soul)
 		world.scheduler:runUntil(function()
 			return state.done
-		end, 120)
+		end, 160)
 		equal(state.loaded, true, "Case " .. index)
 		equal(soul.Data.Coins, 9, "Case " .. index)
 	end

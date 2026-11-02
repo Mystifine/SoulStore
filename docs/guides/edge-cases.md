@@ -45,7 +45,8 @@ Roblox data stores fail in ways that are easy to miss. This page lists the known
 | An unpublished place, or Studio without API access | Stops at once with `DataStoreError` rather than retrying forever | [ProfileStore][profilestore] |
 | `502: ... HTTP 403` | Stops in Studio, where it means no access. Retries on a live server | [ProfileStore][profilestore] |
 | Queue-full drops, 5xx errors, `KeyThrottled`, `ExperienceThrottled` and anything unrecognized | Retries | [Limits][limits] |
-| Retrying at the same moment as everyone else | Delays grow by half up to `MAX_RETRY_INTERVAL`, and each wait varies by 20% either way | [Best practices][best] |
+| Retrying at the same moment as everyone else | Delays grow by half up to `MAX_RETRY_INTERVAL`, or `MAX_FINAL_SAVE_RETRY_INTERVAL` for a final save, and each wait varies by 20% either way | [Best practices][best] |
+| A save request never returns | The next save runs after `HUNG_SAVE_TIME` (60 seconds). Only the newest write may land, so the hung one cannot undo a newer save if it comes back late | |
 | A failed load being treated as a new player | Defaults are only used when the store answers that no record exists | [Best practices][best] |
 | A long outage at load | `LoadData` keeps waiting and writes nothing. A game can stop waiting by calling `SaveData(true)` or kicking the player | [Player data][purchasing] |
 
@@ -55,10 +56,11 @@ Roblox data stores fail in ways that are easy to miss. This page lists the known
 |---|---|---|
 | A teleport arrives before the old server has seen the player leave | The new server waits, then loads the final save | [Player data][purchasing] |
 | A retry of an old write landing after a newer one | Saves write only while the record names their own token | [Best practices][best] |
-| A server crashes while holding a lock | Another server takes over once the lock has not changed for `LOCK_TAKEOVER_TIME` (90 seconds), or for 45 seconds if it is older than `SESSION_LOCK_EXPIRY` | [ProfileStore][profilestore] |
-| A healthy server loses its lock to a player waiting elsewhere | Cannot happen: a live session's autosaves keep restarting the wait | |
-| An outage makes a live server look dead | A failed request restarts the wait, so only an unchanged lock seen through working requests counts | |
-| A long outage ends, every lock now looks old, and a new server reaches a lock before its old owner lands its final save | Even an old lock is watched for longer than a final save's slowest retry, so the final save gets there first and nothing is lost | `tests/load.luau` |
+| A server crashes while holding a lock | Another server takes over once the lock is past `SESSION_EXPIRY` (2 minutes) and has looked the same for `TAKEOVER_DELAY` (15 seconds) | [ProfileStore][profilestore] |
+| A healthy server loses its lock to a player waiting elsewhere | Its autosaves keep the lock from expiring, unless its clock or the reader's is badly wrong. See below | |
+| An outage makes a live server look dead | A failed request restarts `TAKEOVER_DELAY`, so only an unchanged lock seen through working requests counts. A live session's next autosave can still be up to 30 seconds away, so if that player is loading on a second server just then, the load can win. The old session's next write is refused, and what it had not saved is lost | |
+| A long outage ends, every lock now looks expired, and a new server reaches a lock before its old owner lands its final save | `TAKEOVER_DELAY` is longer than a final save's slowest retry, so the final save gets there first and nothing is lost | `tests/load.luau` |
+| A new server's connection recovers more than `TAKEOVER_DELAY` before the old server's | The new server takes the expired lock. The old session's next write is refused, so nothing is overwritten, but what it had not saved is lost | |
 | A server cut off from the store is taken over, then comes back | Its next write is refused. The session ends with `OwnershipLost` and writes nothing | [Player data][purchasing] |
 | A record is deleted during a session | The session ends with `OwnershipLost` and does not bring the record back | [Lapis][lapis] |
 | A teleport fails after the session was released | The same Player can call `SoulStore.new` again and load normally | [ProfileStore][troubleshooting] |
@@ -70,9 +72,9 @@ Servers can disagree about the time, by up to five minutes [according to one rep
 | Case | What SoulStore does |
 |---|---|
 | A writer's clock is slow, so its live lock looks old | Lock age comes from Roblox's `UpdatedTime`, not the writer's clock |
-| A reader's clock is slow, so a dead lock never looks old | The takeover wait uses only the reader's own `os.clock` |
-| A server's clock jumps forward or back | Leases and autosaves use `os.clock`, so neither ends sessions nor stops saving |
-| A reader's clock is far ahead | It reads a live lock as old, which only shortens its watch to 45 seconds, and a live session writes every 30. It would take that clock and an owner's failed autosave at the same moment to take a live lock. The old session's next write would be refused, so nothing is overwritten, but what it had not saved yet would be lost |
+| A reader's clock is slow, so a dead lock looks new | A load that has watched a lock for all of `SESSION_EXPIRY` takes it, however new it looks |
+| A server's clock jumps forward or back | Autosaves use `os.clock`, so it does not stop them |
+| A reader's clock is far ahead | It reads a live lock as expired, and can take it after `TAKEOVER_DELAY`, between the owner's autosaves. The old session's next write is refused, so nothing is overwritten, but what it had not saved yet is lost. It takes a clock about 2 minutes off, and that player loading on a second server while the first still holds them |
 
 ## Budgets and throttling
 
@@ -90,7 +92,7 @@ Servers can disagree about the time, by up to five minutes [according to one rep
 |---|---|---|
 | `Players:GetPlayers()` is already empty at shutdown | Works from its own list of sessions | [DevForum][close] |
 | A player leaves during shutdown | One write, not two | [DevForum][close] |
-| A request never returns | Shutdown still ends within `SHUTDOWN_TIMEOUT`. The lock recovers later | [BindToClose][bindtoclose] |
+| A request never returns | Roblox ends the server after 30 seconds. The lock recovers when it expires | [BindToClose][bindtoclose] |
 | Many players on a slow store | Saves run side by side | [BindToClose][bindtoclose] |
 | A change arrives after shutdown began | `SetData` returns nil rather than losing it silently | |
 

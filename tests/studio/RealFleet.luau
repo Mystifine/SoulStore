@@ -93,7 +93,7 @@ task.spawn(function()
 
 	say(string.format("--- %d sessions for %d minutes, autosaving every 60 seconds", SESSIONS, MINUTES))
 	Config.AUTO_SAVE_INTERVAL = 60
-	Config.LOCK_TAKEOVER_TIME = 180
+	Config.SESSION_EXPIRY = 180
 
 	-- Frame times, while all of this runs
 	local frames = {}
