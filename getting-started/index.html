@@ -1017,7 +1017,7 @@
 <h2 id="installation">Installation</h2>
 <p>Require SoulStore only from server code.</p>
 <p>For Rojo, clone the repository, run <code>rojo build -o SoulStore.rbxlx</code>, and copy the SoulStore module from ServerScriptService into your project.</p>
-<p>For Wally, add <code>soulstore = "mystifine/soulstore@2.0.1"</code> to your project's server dependencies, then run <code>wally install</code>. If your game already uses 1.x, read <a href="../guides/migrating/">Migrating from 1.x</a> first, because some arguments changed.</p>
+<p>For Wally, add <code>soulstore = "mystifine/soulstore@2.0.2"</code> to your project's server dependencies, then run <code>wally install</code>. If your game already uses 1.x, read <a href="../guides/migrating/">Migrating from 1.x</a> first, because some arguments changed.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kd">local</span><span class="w"> </span><span class="nv">SoulStore</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="nv">path</span><span class="p">.</span><span class="py">to</span><span class="p">.</span><span class="py">SoulStore</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="player-lifecycle">Player lifecycle</h2>
@@ -1114,8 +1114,8 @@
 <tbody>
 <tr>
 <td><code>DEBUG_MODE</code></td>
-<td><code>false</code></td>
-<td>Verbose diagnostic output. Persistence warnings remain visible.</td>
+<td><code>true</code></td>
+<td>Routine output, such as each load and save. Persistence warnings always show, even when this is off.</td>
 </tr>
 <tr>
 <td><code>TRACE_BACK_MESSAGE</code></td>
